@@ -1,6 +1,5 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import * as THREE from 'three';
-import { useTexture } from '@react-three/drei';
 import { createContainerTexture, createMetalTexture, createDeckTexture, createRustyMetalTexture } from '../utils/textures';
 import dockerLogo from '../assets/docker.png';
 import kubernetesLogo from '../assets/kubernetes.png';
@@ -8,7 +7,17 @@ import kubernetesLogo from '../assets/kubernetes.png';
 // Container component with detailed textures
 function Container({ position, color, label = "CARGO" }) {
   const containerTexture = useMemo(() => createContainerTexture(color), [color]);
-  const dockerTexture = useTexture(dockerLogo);
+  const [dockerTexture, setDockerTexture] = useState(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      dockerLogo,
+      (texture) => setDockerTexture(texture),
+      undefined,
+      (error) => console.warn('Failed to load docker texture:', error)
+    );
+  }, []);
   
   return (
     <group position={position}>
@@ -19,16 +28,20 @@ function Container({ position, color, label = "CARGO" }) {
       </mesh>
       
       {/* Docker logo on right side */}
-      <mesh position={[2.05, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[3, 1.5]} />
-        <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
-      </mesh>
+      {dockerTexture && (
+        <mesh position={[2.05, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[3, 1.5]} />
+          <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
+        </mesh>
+      )}
       
       {/* Docker logo on left side */}
-      <mesh position={[-2.05, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[3, 1.5]} />
-        <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
-      </mesh>
+      {dockerTexture && (
+        <mesh position={[-2.05, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          <planeGeometry args={[3, 1.5]} />
+          <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
+        </mesh>
+      )}
       
       {/* Container doors detail */}
       <group position={[0, 0, 4]}>
@@ -82,7 +95,17 @@ function Container({ position, color, label = "CARGO" }) {
 
 function CargoShip({ position = [0, 0, -30] }) {
   const shipRef = useRef();
-  const k8sTexture = useTexture(kubernetesLogo);
+  const [k8sTexture, setK8sTexture] = useState(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      kubernetesLogo,
+      (texture) => setK8sTexture(texture),
+      undefined,
+      (error) => console.warn('Failed to load kubernetes texture:', error)
+    );
+  }, []);
   
   // Create textures
   const metalTexture1 = useMemo(() => createMetalTexture('#4a5260'), []);
@@ -608,45 +631,47 @@ function CargoShip({ position = [0, 0, -30] }) {
         </mesh>
       </group>
       
-      {/* KUBERNETES FLAG MAST - In front of superstructure, visible from boat */}
-      <group position={[6, -0.5, 14]}>
-        {/* Mast pole - tall metal pole */}
-        <mesh position={[0, 9, 0]}>
-          <cylinderGeometry args={[0.3, 0.4, 18, 8]} />
+      {/* KUBERNETES FLAG MAST - On stern (back) of ship, visible from client boats */}
+      <group position={[0, -0.5, 28]}>
+        {/* Mast pole - tall metal pole on stern deck */}
+        <mesh position={[0, 8, 0]}>
+          <cylinderGeometry args={[0.3, 0.4, 16, 8]} />
           <meshStandardMaterial map={metalTexture3} flatShading />
         </mesh>
-        
+
         {/* Mast base - reinforced on deck */}
         <mesh position={[0, 0.5, 0]}>
           <cylinderGeometry args={[0.6, 0.8, 1, 8]} />
           <meshStandardMaterial map={metalTexture2} flatShading />
         </mesh>
-        
-        {/* Horizontal flag pole extending toward boat */}
-        <mesh position={[0, 16, -3]} rotation={[0, 0, 0]}>
+
+        {/* Horizontal flag pole extending backward from stern */}
+        <mesh position={[0, 14, 3]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.15, 0.15, 6, 8]} />
           <meshStandardMaterial map={metalTexture4} flatShading />
         </mesh>
-        
-        {/* KUBERNETES FLAG - Large, facing the boat */}
-        <mesh position={[0, 16, -6]} rotation={[0, 0, 0]}>
-          <planeGeometry args={[6, 4]} />
-          <meshStandardMaterial map={k8sTexture} transparent alphaTest={0.5} side={THREE.DoubleSide} />
-        </mesh>
-        
+
+        {/* KUBERNETES FLAG - Large, hanging from stern, facing boats at bow */}
+        {k8sTexture && (
+          <mesh position={[0, 12, 6]} rotation={[0, Math.PI, 0]}>
+            <planeGeometry args={[8, 5]} />
+            <meshStandardMaterial map={k8sTexture} transparent alphaTest={0.5} side={THREE.DoubleSide} />
+          </mesh>
+        )}
+
         {/* Mast top cap */}
-        <mesh position={[0, 18.5, 0]}>
+        <mesh position={[0, 16.5, 0]}>
           <sphereGeometry args={[0.4, 8, 8]} />
           <meshStandardMaterial color="#ffaa00" flatShading />
         </mesh>
-        
+
         {/* Support cables for stability */}
-        <mesh position={[-2, 8, 0]} rotation={[0, 0, Math.PI / 6]}>
-          <cylinderGeometry args={[0.05, 0.05, 10, 6]} />
+        <mesh position={[-2, 7, -1.5]} rotation={[Math.PI / 12, 0, Math.PI / 6]}>
+          <cylinderGeometry args={[0.05, 0.05, 9, 6]} />
           <meshStandardMaterial color="#666666" flatShading />
         </mesh>
-        <mesh position={[2, 8, 0]} rotation={[0, 0, -Math.PI / 6]}>
-          <cylinderGeometry args={[0.05, 0.05, 10, 6]} />
+        <mesh position={[2, 7, -1.5]} rotation={[Math.PI / 12, 0, -Math.PI / 6]}>
+          <cylinderGeometry args={[0.05, 0.05, 9, 6]} />
           <meshStandardMaterial color="#666666" flatShading />
         </mesh>
       </group>

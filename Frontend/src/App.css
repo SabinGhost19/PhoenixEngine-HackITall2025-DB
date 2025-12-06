@@ -1,3 +1,8 @@
+/*
+ * Global Styles & Windows XP Cursor System
+ * The Windows XP cursors are applied globally throughout the entire application
+ */
+
 * {
   margin: 0;
   padding: 0;
@@ -17,7 +22,36 @@ body {
   overflow: hidden;
 }
 
-/* Retro pixel art cursor */
+/* Windows XP Cursor System */
 * {
-  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACOSURBVHgBxZLRDYAgDETvnMARHMERHMERHMERdARH0BEcwRF0BLkmlhgDxfjHl5Cktpf2DoAQQvz3AFprbQCM8Vp7WmvfmLO1wTkHIYQwxoAxZqy1cM6dmDOttXDOgTEGzjlj7bVzzti+aq01hBAgImitYYwZa++9J+accy+EECCEEMYYxhgwxowQQoj/3gFiKTXzHqvBNgAAAABJRU5ErkJggg=='), auto;
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3 L3 18 L8 13 L11 20 L13 19 L10 12 L16 12 Z" fill="white" stroke="black" stroke-width="1"/></svg>') 0 0, auto;
+}
+
+/* Windows XP Hand cursor for buttons and clickable elements */
+button,
+a,
+.clickable,
+[role="button"],
+[onclick] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="28" viewBox="0 0 20 28"><path d="M4 0 L4 12 L0 12 L0 16 L4 16 L4 20 L8 20 L8 16 L12 16 L12 12 L16 12 L16 8 L12 8 L12 4 L8 4 L8 0 Z" fill="white" stroke="black" stroke-width="1"/></svg>') 10 0, pointer;
+}
+
+/* Windows XP I-beam cursor for text inputs */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="search"],
+textarea {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="20" viewBox="0 0 8 20"><line x1="4" y1="0" x2="4" y2="20" stroke="black" stroke-width="2"/><line x1="0" y1="0" x2="8" y2="0" stroke="black" stroke-width="2"/><line x1="0" y1="20" x2="8" y2="20" stroke="black" stroke-width="2"/></svg>') 4 10, text;
+}
+
+/* Canvas elements (3D scenes) should show default arrow cursor */
+canvas {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3 L3 18 L8 13 L11 20 L13 19 L10 12 L16 12 Z" fill="white" stroke="black" stroke-width="1"/></svg>') 0 0, auto;
+}
+
+/* Disabled state cursor */
+button:disabled,
+[disabled] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 3 L3 18 L8 13 L11 20 L13 19 L10 12 L16 12 Z" fill="white" stroke="black" stroke-width="1"/><circle cx="12" cy="12" r="8" fill="none" stroke="red" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="red" stroke-width="2"/></svg>') 0 0, not-allowed;
 }

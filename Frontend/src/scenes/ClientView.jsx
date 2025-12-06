@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sky, PointerLockControls } from '@react-three/drei';
 import Ocean from '../components/Ocean';
@@ -106,7 +106,9 @@ function ClientView({ onSendBottle }) {
         <Boat position={[0, 0, 2]} />
         
         {/* Cargo ship - diagonal view, further away */}
-        <CargoShip position={[15, 2, -60]} scale={[2, 2, 2]} rotation={[0, -0.3, 0]} />
+        <Suspense fallback={null}>
+          <CargoShip position={[15, 2, -60]} scale={[2, 2, 2]} rotation={[0, -0.3, 0]} />
+        </Suspense>
         
         {/* Bottles being sent */}
         {bottles.map((bottle) => (

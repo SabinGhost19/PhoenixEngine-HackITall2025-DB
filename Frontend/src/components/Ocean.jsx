@@ -22,12 +22,12 @@ function Ocean() {
 
   return (
     <>
-      <mesh 
-        ref={meshRef} 
-        rotation={[-Math.PI / 2, 0, 0]} 
+      <mesh
+        ref={meshRef}
+        rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -2, 0]}
       >
-        <planeGeometry args={[200, 200, 128, 128]} />
+        <planeGeometry args={[500, 500, 128, 128]} />
         <shaderMaterial
           vertexShader={oceanVertexShader}
           fragmentShader={oceanFragmentShader}

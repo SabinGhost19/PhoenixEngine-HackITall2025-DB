@@ -5,11 +5,17 @@
   transform: translateX(-50%);
   z-index: 1000;
   display: flex;
+  flex-direction: column;
   gap: 10px;
   background: var(--color-ui-bg);
   padding: 10px;
   border: 3px solid var(--color-ui-text);
   box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+}
+
+.view-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .toggle-btn {
@@ -41,4 +47,48 @@
 .toggle-btn.active {
   background: var(--color-container-red);
   box-shadow: inset 3px 3px 0px rgba(0, 0, 0, 0.3);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 8px 12px;
+  background: rgba(0, 255, 0, 0.1);
+  border: 2px solid #00ff00;
+  font-family: 'Courier New', monospace;
+}
+
+.username {
+  color: #00ff00;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 0 0 5px #00ff00;
+}
+
+.logout-btn {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 6px 16px;
+  background: #ff0000;
+  color: #fff;
+  border: 2px solid #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.logout-btn:hover {
+  background: #cc0000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.logout-btn:active {
+  transform: scale(0.95);
 }
