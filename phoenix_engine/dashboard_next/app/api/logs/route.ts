@@ -22,6 +22,8 @@ export async function GET(request: Request) {
     const type = searchParams.get('type'); // 'anomalies' or 'container'
     const containerName = searchParams.get('container');
 
+    const since = searchParams.get('since');
+
     try {
         if (type === 'anomalies') {
             const errors = await redis.lrange('errors', 0, 9); // Last 10 errors
@@ -41,14 +43,21 @@ export async function GET(request: Request) {
                 }
 
                 const container = docker.getContainer(target.Id);
-                // Get logs (last 100 lines)
-                const logsBuffer = await container.logs({
+
+                const logOpts: any = {
                     stdout: true,
                     stderr: true,
-                    tail: 100,
                     timestamps: true,
                     follow: false
-                }) as Buffer;
+                };
+
+                if (since) {
+                    logOpts.since = parseInt(since);
+                } else {
+                    logOpts.tail = 100;
+                }
+
+                const logsBuffer = await container.logs(logOpts) as unknown as Buffer;
 
                 const logs = cleanDockerLogs(logsBuffer);
                 return NextResponse.json({ logs });

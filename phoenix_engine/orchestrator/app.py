@@ -47,13 +47,6 @@ def control_loop():
         if r.get("migration_active_python") == "true":
             current_weight = float(r.get("weight_python") or 0)
             
-            # Logic: If score is high (100%), increase weight gradually
-            # For demo purposes, we might need to "fix" the logic first.
-            # But let's assume the "AI" (Arbiter) has already flagged it and we are in "Convergence" phase.
-            # Actually, the user wants to see the transition.
-            # If score < 100, we shouldn't migrate.
-            # But for the demo, let's assume we want to show the transition anyway or we simulate a fix.
-            
             if score >= 99.0:
                 if current_weight < 1.0:
                     new_weight = min(current_weight + 0.05, 1.0) # +5% every 2 seconds

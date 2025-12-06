@@ -140,10 +140,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-  traffic_generator:
-    build: ./traffic_generator
-    restart: unless-stopped
-    environment:
-      GATEWAY_URL: http://gateway:8082
-    depends_on:
-      - gateway
+#   traffic_generator:
+#     build: ./traffic_generator
+#     restart: unless-stopped
+#     environment:
+#       GATEWAY_URL: http://gateway:8082
+#     depends_on:
+#       - gateway
