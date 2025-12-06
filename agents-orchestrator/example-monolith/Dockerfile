@@ -7,6 +7,16 @@ RUN apt-get update && apt-get install -y libpq-dev \
 # Enable mod_rewrite for Apache
 RUN a2enmod rewrite
 
+# Configure Apache routing directly (no .htaccess needed)
+RUN echo '<Directory /var/www/html/>\n\
+    Options Indexes FollowSymLinks\n\
+    AllowOverride None\n\
+    Require all granted\n\
+    \n\
+    RewriteEngine On\n\
+    RewriteRule ^users$ users.php [L]\n\
+</Directory>' >> /etc/apache2/apache2.conf
+
 COPY . /var/www/html/
 
 # Configure Apache to route everything to index.php if needed, 

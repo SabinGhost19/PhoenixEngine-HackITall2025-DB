@@ -75,11 +75,42 @@ fi
 echo "🧹 Cleaning up unused imports..."
 cd "$MIGRATION_DIR"
 
-# Try to use goimports if available, otherwise use gofmt
-if command -v goimports &> /dev/null; then
-    goimports -w main.go 2>/dev/null || true
-elif command -v gofmt &> /dev/null; then
-    gofmt -w main.go 2>/dev/null || true
+# Find all Go files in the migration directory
+GO_FILES=$(find . -name "*.go" -type f)
+
+for file in $GO_FILES; do
+    echo "Processing $file for unused imports..."
+    # Smart cleanup for common unused imports
+    # Check if sqlx is used (ignoring comments)
+    if ! grep -v "^\s*//" "$file" | grep -q "sqlx\."; then
+        echo "🧹 Removing unused sqlx import from $file"
+        sed -i '/"github.com\/jmoiron\/sqlx"/d' "$file"
+    fi
+
+    # Check if fmt is used (ignoring comments)
+    if ! grep -v "^\s*//" "$file" | grep -q "fmt\."; then
+        echo "🧹 Removing unused fmt import from $file"
+        sed -i '/"fmt"/d' "$file"
+    fi
+
+    # Run goimports if installed, otherwise gofmt
+    if command -v goimports &> /dev/null; then
+        goimports -w "$file" 2>/dev/null || true
+    elif command -v gofmt &> /dev/null; then
+        gofmt -w "$file" 2>/dev/null || true
+    fi
+done
+
+# Fix Dockerfile if main.go is in cmd/
+if [[ "$MAIN_GO" == *"/cmd/main.go" ]]; then
+    echo "🐳 Patching Dockerfile for cmd/ structure..."
+    if [ -f "$MIGRATION_DIR/Dockerfile" ]; then
+        # Replace entire go build line to be safe regardless of binary name
+        sed -i 's|RUN .*go build.*|RUN CGO_ENABLED=0 GOOS=linux go build -o users-service ./cmd/main.go|g' "$MIGRATION_DIR/Dockerfile"
+        
+        # Ensure CMD is correct
+        sed -i 's|CMD .*|CMD ["./users-service"]|g' "$MIGRATION_DIR/Dockerfile"
+    fi
 fi
 
 echo "✅ Post-processing complete"

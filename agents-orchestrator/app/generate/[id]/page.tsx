@@ -164,7 +164,10 @@ export default function GeneratePage() {
             />
 
             <div className="max-w-6xl mx-auto mt-8">
-              <DeploymentPanel migrationId={result.downloadUrl.split('/').pop()!} />
+              <DeploymentPanel
+                migrationId={result.downloadUrl.split('/').pop()!}
+                endpointAnalysis={result.endpointAnalysis}
+              />
             </div>
 
             <div className="max-w-6xl mx-auto mt-8 flex gap-4">

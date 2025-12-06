@@ -1,0 +1,20 @@
+{
+  "status": "success",
+  "migrationId": "migration-1765057724944-3k14qe",
+  "legacy": {
+    "success": true,
+    "containerId": "4413984dcc6fc34613a4236bcecd6c389d4647f8a140ea7b8989efc0a959b13e",
+    "containerName": "phoenix-legacy",
+    "port": 8081,
+    "url": "http://localhost:8081"
+  },
+  "modern": {
+    "success": true,
+    "containerId": "81fbfd79564ab385a37ee7dff4142d33c49492ec63713308c1d4a83e1b9a968c",
+    "containerName": "phoenix-modern-migration-1765057724944-3k14qe",
+    "port": 8080,
+    "url": "http://localhost:8080"
+  },
+  "message": "Both services deployed successfully",
+  "timestamp": 1765057786884
+}

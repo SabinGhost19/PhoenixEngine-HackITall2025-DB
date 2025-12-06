@@ -1,7 +1,7 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Rocket, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { EndpointAnalysis } from '../lib/schemas';
+import TrafficGenerator from './TrafficGenerator';
 
 interface DeploymentResult {
     success: boolean;
@@ -22,9 +22,10 @@ interface DeploymentResponse {
 interface DeploymentPanelProps {
     migrationId?: string;
     isGenerating?: boolean;
+    endpointAnalysis?: EndpointAnalysis;
 }
 
-export default function DeploymentPanel({ migrationId, isGenerating = false }: DeploymentPanelProps) {
+export default function DeploymentPanel({ migrationId, isGenerating = false, endpointAnalysis }: DeploymentPanelProps) {
     const [isDeploying, setIsDeploying] = useState(false);
     const [deploymentResult, setDeploymentResult] = useState<DeploymentResponse | null>(null);
 
@@ -38,6 +39,7 @@ export default function DeploymentPanel({ migrationId, isGenerating = false }: D
         setDeploymentResult(null);
 
         try {
+            // 1. Start deployment
             const response = await fetch('/api/deploy', {
                 method: 'POST',
                 headers: {
@@ -46,16 +48,44 @@ export default function DeploymentPanel({ migrationId, isGenerating = false }: D
                 body: JSON.stringify({ migrationId }),
             });
 
-            const data = await response.json();
-            setDeploymentResult(data);
-
-            if (data.success) {
-                console.log('✅ Deployment successful:', data);
-            } else {
-                console.error('❌ Deployment failed:', data);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`Server returned ${response.status}: ${text}`);
             }
+
+            // 2. Poll for status
+            const pollInterval = setInterval(async () => {
+                try {
+                    const statusRes = await fetch('/api/deploy?status=true');
+                    const statusData = await statusRes.json();
+
+                    if (statusData.status === 'success' || statusData.status === 'error') {
+                        clearInterval(pollInterval);
+                        setIsDeploying(false);
+
+                        // Map status data to DeploymentResponse format
+                        setDeploymentResult({
+                            success: statusData.status === 'success',
+                            legacy: statusData.legacy,
+                            modern: statusData.modern,
+                            message: statusData.message || 'Deployment completed'
+                        });
+
+                        if (statusData.status === 'success') {
+                            console.log('✅ Deployment successful:', statusData);
+                        } else {
+                            console.error('❌ Deployment failed:', statusData);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Polling error:', err);
+                }
+            }, 2000);
+
         } catch (error) {
             console.error('❌ Deployment error:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setIsDeploying(false);
             setDeploymentResult({
                 success: false,
                 legacy: {
@@ -63,23 +93,22 @@ export default function DeploymentPanel({ migrationId, isGenerating = false }: D
                     containerName: 'phoenix-legacy',
                     port: 8081,
                     url: 'http://localhost:8081',
-                    error: 'Network error'
+                    error: errorMessage
                 },
                 modern: {
                     success: false,
                     containerName: `phoenix-modern-${migrationId}`,
                     port: 8080,
                     url: 'http://localhost:8080',
-                    error: 'Network error'
+                    error: errorMessage
                 },
-                message: 'Failed to connect to deployment API'
+                message: `Deployment failed: ${errorMessage}`
             });
-        } finally {
-            setIsDeploying(false);
         }
     };
 
     const isButtonDisabled = isDeploying || !migrationId || isGenerating;
+    const showTrafficGenerator = deploymentResult?.modern.success && endpointAnalysis && migrationId;
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-6">
@@ -97,8 +126,8 @@ export default function DeploymentPanel({ migrationId, isGenerating = false }: D
                     onClick={handleDeploy}
                     disabled={isButtonDisabled}
                     className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${isButtonDisabled
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                 >
                     {isDeploying ? (
@@ -250,6 +279,14 @@ export default function DeploymentPanel({ migrationId, isGenerating = false }: D
                             docker ps
                         </code>
                     </div>
+
+                    {/* Traffic Generator - Only shown on success */}
+                    {showTrafficGenerator && (
+                        <TrafficGenerator
+                            endpointAnalysis={endpointAnalysis!}
+                            migrationId={migrationId!}
+                        />
+                    )}
                 </div>
             )}
         </div>
