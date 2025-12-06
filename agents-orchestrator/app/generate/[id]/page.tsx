@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MicroservicePreview from '@/components/generator/MicroservicePreview';
+import DeploymentPanel from '@/components/DeploymentPanel';
 import { MigrationResult } from '@/lib/schemas';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
@@ -161,6 +162,10 @@ export default function GeneratePage() {
               verification={result.verification}
               downloadUrl={result.downloadUrl}
             />
+
+            <div className="max-w-6xl mx-auto mt-8">
+              <DeploymentPanel migrationId={result.downloadUrl.split('/').pop()!} />
+            </div>
 
             <div className="max-w-6xl mx-auto mt-8 flex gap-4">
               <button

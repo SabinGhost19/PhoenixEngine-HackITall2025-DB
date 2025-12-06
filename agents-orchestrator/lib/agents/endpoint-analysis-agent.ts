@@ -23,6 +23,14 @@ Your role:
 - Determine output format and structure
 - Estimate migration effort
 
+CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
+- Do NOT use escaped quotes in field names
+- Do NOT mix XML-like tags with JSON
+- Ensure all required fields are present
+- All arrays must be properly formatted JSON arrays
+- All booleans must be true or false (not strings)
+- All enums must use exact values from the schema
+
 Be extremely detailed and precise in your analysis.`;
 
 export class EndpointAnalysisAgent {
@@ -34,9 +42,11 @@ export class EndpointAnalysisAgent {
         const result = await generateObject({
           model: anthropic(MODEL),
           schema: EndpointAnalysisSchema,
+          schemaName: 'EndpointAnalysis',
+          schemaDescription: 'Comprehensive analysis of a single API endpoint including parameters, business logic, database operations, dependencies, and security considerations',
           system: systemPrompt,
           prompt: userPrompt,
-          temperature: 0.2,
+          temperature: 0.1, // Lower temperature for more deterministic output
         });
 
         return result.object;
