@@ -1,0 +1,141 @@
+
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: phoenix
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: phoenix_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  legacy_python:
+    build: ./legacy_python
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://phoenix:password@postgres:5432/phoenix_db
+    depends_on:
+      - postgres
+
+  modern_python:
+    build: ./modern_python
+    ports:
+      - "8083:8083"
+    environment:
+      DATABASE_URL: postgresql://phoenix:password@postgres:5432/phoenix_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - postgres
+      - kafka
+
+  legacy_php:
+    build: ./legacy_php
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgresql://phoenix:password@postgres:5432/phoenix_db
+    depends_on:
+      - postgres
+
+  modern_go:
+    build: ./modern_go
+    ports:
+      - "8084:8084"
+    environment:
+      DATABASE_URL: postgres://phoenix:password@postgres:5432/phoenix_db?sslmode=disable
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - postgres
+      - kafka
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8082:8082"
+    environment:
+      LEGACY_PYTHON_URL: http://legacy_python:8080
+      MODERN_PYTHON_URL: http://modern_python:8083
+      LEGACY_PHP_URL: http://legacy_php:8081
+      MODERN_GO_URL: http://modern_go:8084
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - legacy_python
+      - modern_python
+      - legacy_php
+      - modern_go
+      - kafka
+
+  arbiter:
+    build: ./arbiter
+    environment:
+      DATABASE_URL: postgresql://phoenix:password@postgres:5432/phoenix_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+
+  orchestrator:
+    build: ./orchestrator
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GATEWAY_URL: http://gateway:8082
+    depends_on:
+      - redis
+      - gateway
+      - arbiter
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ORCHESTRATOR_URL: http://orchestrator:5000
+    depends_on:
+      - redis
+      - orchestrator
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  traffic_generator:
+    build: ./traffic_generator
+    environment:
+      GATEWAY_URL: http://gateway:8082
+    depends_on:
+      - gateway
