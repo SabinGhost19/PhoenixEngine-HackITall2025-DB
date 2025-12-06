@@ -1,0 +1,44 @@
+.view-toggle {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+  background: var(--color-ui-bg);
+  padding: 10px;
+  border: 3px solid var(--color-ui-text);
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px 24px;
+  background: var(--color-ocean-deep);
+  color: var(--color-ui-text);
+  border: 3px solid var(--color-ui-text);
+  cursor: pointer;
+  transition: all 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn:hover {
+  background: var(--color-ocean-mid);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+}
+
+.toggle-btn.active {
+  background: var(--color-container-red);
+  box-shadow: inset 3px 3px 0px rgba(0, 0, 0, 0.3);
+}
