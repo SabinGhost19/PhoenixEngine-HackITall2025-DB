@@ -2,6 +2,7 @@ import os
 import json
 import psycopg2
 import redis
+import time
 from kafka import KafkaConsumer
 from psycopg2.extras import RealDictCursor
 import threading
@@ -15,7 +16,12 @@ REDIS_PORT = os.getenv("REDIS_PORT")
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
+    while True:
+        try:
+            return psycopg2.connect(DATABASE_URL)
+        except psycopg2.OperationalError:
+            print("Database not ready, retrying in 2s...")
+            time.sleep(2)
 
 def reconcile_state(transaction_id, account_number):
     conn = get_db_connection()
@@ -48,12 +54,11 @@ def reconcile_state(transaction_id, account_number):
                     "delta": delta,
                     "legacy_balance": legacy_bal,
                     "modern_balance": modern_bal,
-                    "timestamp": "now" # simplified
+                    "timestamp": time.time()
                 }
                 r.lpush("errors", json.dumps(error_data))
             
-            # Update Consistency Score (Simplified: Rolling average or just count)
-            # For now, just increment counters
+            # Update Consistency Score
             r.incr("total_transactions")
             if status == "MATCH":
                 r.incr("matched_transactions")
@@ -61,11 +66,15 @@ def reconcile_state(transaction_id, account_number):
             # Calculate Score
             total = int(r.get("total_transactions") or 1)
             matched = int(r.get("matched_transactions") or 0)
-            # DEMO HACK: Force 100% to show migration
-            score = 100.0 
+            
+            if total > 0:
+                score = (matched / total) * 100.0
+            else:
+                score = 100.0
+                
             r.set("consistency_score", score)
             
-            print(f"Consistency Score: {score}%")
+            print(f"Consistency Score: {score:.2f}%")
             
     except Exception as e:
         print(f"Error reconciling: {e}")
@@ -74,20 +83,32 @@ def reconcile_state(transaction_id, account_number):
         conn.close()
 
 def consume_db_updates():
-    consumer = KafkaConsumer(
-        'db-state-updates',
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-        group_id='arbiter-group'
-    )
+    consumer = None
+    while consumer is None:
+        try:
+            consumer = KafkaConsumer(
+                'db-state-updates',
+                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+                group_id='arbiter-group'
+            )
+        except Exception as e:
+            print(f"Kafka not ready ({e}), retrying in 2s...")
+            time.sleep(2)
     
     print("Arbiter listening on db-state-updates...")
     for message in consumer:
         data = message.value
-        # We assume Legacy has also finished (since it's synchronous in Gateway)
-        # In a real system, we might need to wait for both or handle race conditions.
-        # Here we trigger reconciliation.
         reconcile_state(data.get('transaction_id'), data.get('account_number'))
 
 if __name__ == "__main__":
+    # Wait for Redis
+    while True:
+        try:
+            r.ping()
+            break
+        except redis.ConnectionError:
+            print("Redis not ready, retrying in 2s...")
+            time.sleep(2)
+            
     consume_db_updates()

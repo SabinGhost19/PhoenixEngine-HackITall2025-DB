@@ -41,6 +41,7 @@ services:
 
   legacy_python:
     build: ./legacy_python
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
@@ -50,6 +51,7 @@ services:
 
   modern_python:
     build: ./modern_python
+    restart: unless-stopped
     ports:
       - "8083:8083"
     environment:
@@ -61,6 +63,7 @@ services:
 
   legacy_php:
     build: ./legacy_php
+    restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
@@ -70,6 +73,7 @@ services:
 
   modern_go:
     build: ./modern_go
+    restart: unless-stopped
     ports:
       - "8084:8084"
     environment:
@@ -81,6 +85,7 @@ services:
 
   gateway:
     build: ./gateway
+    restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
@@ -98,6 +103,7 @@ services:
 
   arbiter:
     build: ./arbiter
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://phoenix:password@postgres:5432/phoenix_db
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
@@ -110,6 +116,7 @@ services:
 
   orchestrator:
     build: ./orchestrator
+    restart: unless-stopped
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -120,13 +127,13 @@ services:
       - arbiter
 
   dashboard:
-    build: ./dashboard
+    build: ./dashboard_next
+    restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "3000:3000"
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      ORCHESTRATOR_URL: http://orchestrator:5000
     depends_on:
       - redis
       - orchestrator
@@ -135,6 +142,7 @@ services:
 
   traffic_generator:
     build: ./traffic_generator
+    restart: unless-stopped
     environment:
       GATEWAY_URL: http://gateway:8082
     depends_on:

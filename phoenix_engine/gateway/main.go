@@ -34,9 +34,17 @@ func main() {
 
 	kafkaBootstrap := os.Getenv("KAFKA_BOOTSTRAP_SERVERS")
 	var err error
-	kafkaProducer, err = kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaBootstrap})
+	for i := 0; i < 30; i++ {
+		kafkaProducer, err = kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": kafkaBootstrap})
+		if err == nil {
+			break
+		}
+		log.Printf("Failed to create Kafka producer: %s. Retrying in 2s...", err)
+		time.Sleep(2 * time.Second)
+	}
+	
 	if err != nil {
-		log.Printf("Failed to create Kafka producer: %s", err)
+		log.Printf("Failed to create Kafka producer after retries: %s", err)
 	} else {
 		defer kafkaProducer.Close()
 	}
