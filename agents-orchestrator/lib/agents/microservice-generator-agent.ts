@@ -1,0 +1,160 @@
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateObject } from 'ai';
+import { MicroserviceSchema, type Microservice, type EndpointAnalysis } from '../schemas';
+import { retry } from '../utils/helpers';
+
+const MODEL = 'claude-3-5-haiku-20241022';
+
+type Language = 'go' | 'python' | 'node-ts';
+
+interface MicroserviceGeneratorInput {
+  endpointAnalysis: EndpointAnalysis;
+  language: Language;
+  serviceName: string;
+}
+
+const systemPrompt = `You are an expert microservice architect and full-stack developer.
+
+Your role:
+- Generate complete, production-ready microservice code
+- Support multiple languages: Go, Python (FastAPI), Node.js (TypeScript + Express)
+- Create ALL necessary files (handlers, models, config, tests)
+- Generate complete Dockerfile optimized for production
+- Provide clear build and deployment instructions
+- Follow best practices and modern patterns
+- Include proper error handling, logging, and validation
+- Generate API documentation
+
+Produce COMPLETE, WORKING code - not placeholders or TODOs.`;
+
+export class MicroserviceGeneratorAgent {
+  async run(input: MicroserviceGeneratorInput): Promise<Microservice> {
+    return retry(async () => {
+      try {
+        const userPrompt = this.buildUserPrompt(input);
+
+        const result = await generateObject({
+          model: anthropic(MODEL),
+          schema: MicroserviceSchema,
+          system: systemPrompt,
+          prompt: userPrompt,
+          temperature: 0.3,
+        });
+
+        return result.object;
+      } catch (error) {
+        console.error('MicroserviceGeneratorAgent error:', error);
+        throw new Error(`Microservice generation failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, 3, 2000);
+  }
+
+  private buildUserPrompt(input: MicroserviceGeneratorInput): string {
+    const { endpointAnalysis, language, serviceName } = input;
+
+    const languageGuides = {
+      go: `
+**Go Implementation Requirements:**
+- Use Go 1.21+
+- Use gorilla/mux or chi for routing
+- Use sqlx for database (if needed)
+- Use structured logging (zerolog or zap)
+- Include proper error handling
+- Files: main.go, handlers/, models/, config/, Dockerfile
+`,
+      python: `
+**Python Implementation Requirements:**
+- Use Python 3.11+
+- Use FastAPI framework
+- Use Pydantic for validation
+- Use SQLAlchemy for database (if needed)
+- Include proper async/await patterns
+- Files: main.py, routers/, models/, schemas/, config.py, requirements.txt, Dockerfile
+`,
+      'node-ts': `
+**Node.js + TypeScript Requirements:**
+- Use Node.js 20+ with TypeScript 5+
+- Use Express.js
+- Use Zod for validation
+- Use Prisma or TypeORM for database (if needed)
+- Proper async/await and error handling
+- Files: src/index.ts, src/routes/, src/models/, src/middleware/, package.json, tsconfig.json, Dockerfile
+`,
+    };
+
+    return `Generate a complete, production-ready microservice for this endpoint.
+
+**Service Name:** ${serviceName}
+
+**Target Language:** ${language}
+
+${languageGuides[language]}
+
+**Endpoint Analysis:**
+- Path: ${endpointAnalysis.endpointPath}
+- Method: ${endpointAnalysis.method}
+- Business Logic: ${endpointAnalysis.businessLogic.summary}
+
+**Input Parameters:**
+${JSON.stringify(endpointAnalysis.inputParameters, null, 2)}
+
+**Database Operations:**
+${JSON.stringify(endpointAnalysis.databaseOperations, null, 2)}
+
+**Dependencies:**
+${JSON.stringify(endpointAnalysis.dependencies, null, 2)}
+
+**Output Format:**
+${JSON.stringify(endpointAnalysis.outputFormat, null, 2)}
+
+**Your Task:**
+
+Generate a COMPLETE microservice with:
+
+1. **All Source Files**:
+   - Main entry point
+   - Route handlers
+   - Data models/schemas
+   - Database layer (if needed)
+   - Middleware (auth, validation, logging, error handling)
+   - Configuration management
+   - Utility functions
+
+2. **Dockerfile**:
+   - Multi-stage build
+   - Optimized for production
+   - Minimal image size
+   - Security best practices
+
+3. **Dependencies List**:
+   - All required packages/modules
+   - Version pinning
+
+4. **Environment Variables**:
+   - All required env vars with descriptions
+   - Example values
+
+5. **Build & Run Instructions**:
+   - Step-by-step build commands
+   - How to run locally
+   - How to run with Docker
+
+6. **API Documentation**:
+   - Endpoint description
+   - Request/response examples
+   - Error codes
+
+**IMPORTANT:**
+- Generate COMPLETE, WORKING code (no placeholders)
+- Include proper error handling
+- Add logging at key points
+- Validate all inputs
+- Handle edge cases
+- Follow language-specific best practices
+- Use appropriate port (default suggestions: Go=8080, Python=8000, Node=3000)
+
+Return complete JSON following MicroserviceSchema with ALL files populated.`;
+  }
+}
+
+export const microserviceGeneratorAgent = new MicroserviceGeneratorAgent();
