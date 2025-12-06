@@ -1,0 +1,38 @@
+:root {
+  /* Retro color palette */
+  --color-sky: #5fcde4;
+  --color-ocean-deep: #006494;
+  --color-ocean-mid: #0582ca;
+  --color-ocean-light: #00a6fb;
+  --color-foam: #cbf3f0;
+  --color-wood: #8b4513;
+  --color-wood-dark: #654321;
+  --color-metal: #7d8491;
+  --color-container-red: #d62828;
+  --color-container-blue: #003049;
+  --color-container-green: #2a9d8f;
+  --color-sand: #f4a261;
+  --color-ui-text: #ffffff;
+  --color-ui-bg: rgba(0, 0, 0, 0.7);
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Pixel-perfect rendering */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

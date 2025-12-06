@@ -1,0 +1,23 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  background: #000;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Retro pixel art cursor */
+* {
+  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACOSURBVHgBxZLRDYAgDETvnMARHMERHMERHMERdARH0BEcwRF0BLkmlhgDxfjHl5Cktpf2DoAQQvz3AFprbQCM8Vp7WmvfmLO1wTkHIYQwxoAxZqy1cM6dmDOttXDOgTEGzjlj7bVzzti+aq01hBAgImitYYwZa++9J+accy+EECCEEMYYxhgwxowQQoj/3gFiKTXzHqvBNgAAAABJRU5ErkJggg=='), auto;
+}
