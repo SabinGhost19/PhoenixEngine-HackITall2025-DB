@@ -20,6 +20,14 @@ Your role:
 - Verify Docker configuration
 - Check error handling and logging
 
+CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
+- Do NOT use escaped quotes in field names
+- Do NOT mix XML-like tags with JSON
+- Ensure all required fields are present
+- All arrays must be properly formatted JSON arrays
+- All booleans must be true or false (not strings)
+- All enums must use exact values from the schema
+
 Be thorough, constructive, and provide actionable feedback.`;
 
 export class VerifierAgent {
@@ -31,9 +39,11 @@ export class VerifierAgent {
         const result = await generateObject({
           model: anthropic(MODEL),
           schema: VerificationResultSchema,
+          schemaName: 'VerificationResult',
+          schemaDescription: 'Comprehensive verification results including code quality issues, security checks, optimizations, and overall score',
           system: systemPrompt,
           prompt: userPrompt,
-          temperature: 0.2,
+          temperature: 0.1, // Lower temperature for consistent verification
         });
 
         return result.object;

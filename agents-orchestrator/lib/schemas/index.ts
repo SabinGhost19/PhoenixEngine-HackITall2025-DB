@@ -2,28 +2,28 @@ import { z } from 'zod';
 
 // Schema pentru rezultatul arhitecturii
 export const EndpointSchema = z.object({
-  id: z.string(),
-  path: z.string(),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']),
-  file: z.string(),
-  lineNumber: z.number().optional(),
-  description: z.string(),
-  complexity: z.enum(['low', 'medium', 'high']),
+  id: z.string().describe('Unique identifier for the endpoint'),
+  path: z.string().describe('The URL path of the endpoint (e.g., /api/users)'),
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).describe('HTTP method'),
+  file: z.string().describe('File path where this endpoint is defined'),
+  lineNumber: z.number().optional().describe('Line number in the file where endpoint is defined'),
+  description: z.string().describe('Brief description of what this endpoint does'),
+  complexity: z.enum(['low', 'medium', 'high']).describe('Complexity assessment of the endpoint'),
 });
 
 export const ArchitectureSchema = z.object({
-  projectName: z.string(),
-  description: z.string(),
+  projectName: z.string().describe('The name of the project or application'),
+  description: z.string().describe('A brief description of what the application does'),
   structure: z.object({
-    folders: z.array(z.string()),
-    controllers: z.array(z.string()),
-    models: z.array(z.string()),
-    views: z.array(z.string()),
-  }),
-  endpoints: z.array(EndpointSchema),
-  technologies: z.array(z.string()),
-  databaseDetected: z.boolean(),
-  recommendations: z.array(z.string()),
+    folders: z.array(z.string()).describe('List of main folders in the project'),
+    controllers: z.array(z.string()).describe('List of controller files'),
+    models: z.array(z.string()).describe('List of model files'),
+    views: z.array(z.string()).describe('List of view/template files'),
+  }).describe('The project structure breakdown'),
+  endpoints: z.array(EndpointSchema).describe('List of all HTTP endpoints found in the application'),
+  technologies: z.array(z.string()).describe('List of technologies used (e.g., PHP, PostgreSQL, PDO, Laravel)'),
+  databaseDetected: z.boolean().describe('Whether database usage was detected in the code'),
+  recommendations: z.array(z.string()).describe('List of recommendations for modernization and migration'),
 });
 
 // Schema pentru analiza endpoint-ului

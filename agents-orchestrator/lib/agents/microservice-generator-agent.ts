@@ -25,6 +25,13 @@ Your role:
 - Include proper error handling, logging, and validation
 - Generate API documentation
 
+CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
+- Do NOT use escaped quotes in field names
+- Do NOT mix XML-like tags with JSON
+- Ensure all required fields are present
+- All arrays must be properly formatted JSON arrays
+- All enums must use exact values from the schema
+
 Produce COMPLETE, WORKING code - not placeholders or TODOs.`;
 
 export class MicroserviceGeneratorAgent {
@@ -36,9 +43,11 @@ export class MicroserviceGeneratorAgent {
         const result = await generateObject({
           model: anthropic(MODEL),
           schema: MicroserviceSchema,
+          schemaName: 'MicroserviceGeneration',
+          schemaDescription: 'Complete microservice code generation including all source files, Dockerfile, dependencies, and documentation',
           system: systemPrompt,
           prompt: userPrompt,
-          temperature: 0.3,
+          temperature: 0.2, // Lower temperature for more consistent code generation
         });
 
         return result.object;
@@ -61,6 +70,8 @@ export class MicroserviceGeneratorAgent {
 - Use structured logging (zerolog or zap)
 - Include proper error handling
 - Files: main.go, handlers/, models/, config/, Dockerfile
+- **CRITICAL**: Use full module path for imports (e.g. "service-name/handlers"), NEVER relative imports (e.g. "./handlers")
+- Ensure all exported functions/types in subpackages are Capitalized
 `,
       python: `
 **Python Implementation Requirements:**

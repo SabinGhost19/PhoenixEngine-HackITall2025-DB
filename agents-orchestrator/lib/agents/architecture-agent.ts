@@ -19,6 +19,13 @@ Your role:
 - Assess complexity and dependencies
 - Provide architectural insights and migration recommendations
 
+CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
+- Do NOT use escaped quotes in field names
+- Do NOT mix XML-like tags with JSON
+- Ensure all required fields are present: projectName, description, structure, endpoints, technologies, databaseDetected, recommendations
+- All arrays must be properly formatted JSON arrays
+- All booleans must be true or false (not strings)
+
 Be thorough, accurate, and provide actionable insights.`;
 
 export class ArchitectureAgent {
@@ -30,9 +37,11 @@ export class ArchitectureAgent {
         const result = await generateObject({
           model: anthropic(MODEL),
           schema: ArchitectureSchema,
+          schemaName: 'ArchitectureAnalysis',
+          schemaDescription: 'Complete architectural analysis of a legacy monolithic application including structure, endpoints, technologies, and recommendations',
           system: systemPrompt,
           prompt: userPrompt,
-          temperature: 0.3,
+          temperature: 0.1, // Lower temperature for more deterministic output
         });
 
         return result.object;
@@ -68,6 +77,34 @@ ${codeSnippets}
    - Brief description
 3. Identify technologies used (PHP version, frameworks, databases)
 4. Provide migration recommendations
+
+**IMPORTANT: Respond with valid JSON matching this exact structure:**
+{
+  "projectName": "Example Project Name",
+  "description": "Brief description of the application",
+  "structure": {
+    "folders": ["folder1", "folder2"],
+    "controllers": ["controller1.php", "controller2.php"],
+    "models": ["model1.php"],
+    "views": ["view1.php"]
+  },
+  "endpoints": [
+    {
+      "id": "endpoint_1",
+      "path": "/api/example",
+      "method": "POST",
+      "file": "path/to/file.php",
+      "description": "Description of what this endpoint does",
+      "complexity": "high"
+    }
+  ],
+  "technologies": ["PHP", "PostgreSQL", "PDO"],
+  "databaseDetected": true,
+  "recommendations": [
+    "First recommendation",
+    "Second recommendation"
+  ]
+}
 
 Generate a complete JSON response following the ArchitectureSchema.`;
   }

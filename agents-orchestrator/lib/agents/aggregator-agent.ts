@@ -5,6 +5,7 @@ import { retry } from '../utils/helpers';
 import { architectureAgent } from './architecture-agent';
 import { endpointAnalysisAgent } from './endpoint-analysis-agent';
 import { microserviceGeneratorAgent } from './microservice-generator-agent';
+import { codeRepairAgent } from './code-repair-agent';
 import { verifierAgent } from './verifier-agent';
 
 const MODEL = 'gpt-4o';
@@ -60,7 +61,7 @@ export class AggregatorAgent {
 
       // Step 2: Endpoint Analysis
       console.log('🔍 Step 2/5: Analyzing selected endpoint...');
-      const endpointFile = input.fileStructure.find(f => 
+      const endpointFile = input.fileStructure.find(f =>
         f.path === selectedEndpoint.file || f.path.endsWith(selectedEndpoint.file)
       );
 
@@ -91,10 +92,19 @@ export class AggregatorAgent {
       stepsCompleted.push('microservice-generation');
       console.log(`✓ Generated ${microservice.files.length} files`);
 
+      // Step 3.5: Code Repair (New Step)
+      console.log('🔧 Step 3.5/5: Analyzing and repairing code...');
+      const repairedMicroservice = await codeRepairAgent.run({
+        microservice,
+        language: input.targetLanguage,
+      });
+      stepsCompleted.push('code-repair');
+      console.log(`✓ Code repair complete`);
+
       // Step 4: Verification
       console.log('✅ Step 4/5: Verifying generated code...');
       const verification = await verifierAgent.run({
-        microservice,
+        microservice: repairedMicroservice,
       });
       stepsCompleted.push('verification');
       console.log(`✓ Verification score: ${verification.score}/100`);
@@ -102,7 +112,7 @@ export class AggregatorAgent {
       if (verification.issues.length > 0) {
         const errorCount = verification.issues.filter(i => i.severity === 'error').length;
         const warningCount = verification.issues.filter(i => i.severity === 'warning').length;
-        
+
         if (errorCount > 0) {
           warnings.push(`Found ${errorCount} errors in generated code`);
         }
@@ -123,7 +133,7 @@ export class AggregatorAgent {
         success: true,
         architecture,
         endpointAnalysis,
-        microservice,
+        microservice: repairedMicroservice,
         verification,
         downloadUrl: `/api/download/${downloadId}`,
         timestamp: new Date().toISOString(),
@@ -147,10 +157,10 @@ export class AggregatorAgent {
   ): { path: string; content: string }[] {
     // Simple heuristic: find files that are referenced in the main file
     const related: { path: string; content: string }[] = [];
-    
+
     for (const file of fileStructure) {
       const fileName = file.path.split('/').pop() || '';
-      
+
       // Check if file is referenced (include, require, etc.)
       if (
         mainContent.includes(fileName) ||
@@ -158,11 +168,11 @@ export class AggregatorAgent {
         related.length < 5 // Include at least a few files for context
       ) {
         related.push(file);
-        
+
         if (related.length >= 10) break; // Limit to 10 related files
       }
     }
-    
+
     return related;
   }
 }
