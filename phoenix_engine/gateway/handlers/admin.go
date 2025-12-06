@@ -66,7 +66,6 @@ func TrafficLockHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		locked := config.GlobalConfig.IsTrafficLocked()
 		json.NewEncoder(w).Encode(types.TrafficLockResponse{Locked: locked})
-		log.Printf("Traffic lock status queried: %v", locked)
 		return
 	}
 	

@@ -36,6 +36,8 @@ export default function Dashboard() {
   const [lastTrafficResult, setLastTrafficResult] = useState<any>(null);
   const [clearTimestamp, setClearTimestamp] = useState<number | null>(null);
   const [trafficUnlocked, setTrafficUnlocked] = useState(false);
+  const [pythonWeight, setPythonWeight] = useState(0);
+  const [phpWeight, setPhpWeight] = useState(0);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const containers = [
@@ -94,6 +96,26 @@ export default function Dashboard() {
     }
   };
 
+  const handleWeightChange = async (service: 'python' | 'php', weight: number) => {
+    try {
+      const res = await fetch('/api/weight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service, weight: weight / 100 })
+      });
+
+      if (res.ok) {
+        if (service === 'python') {
+          setPythonWeight(weight);
+        } else {
+          setPhpWeight(weight);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to update weight:', e);
+    }
+  };
+
   // Poll Stats
   useEffect(() => {
     const fetchStats = async () => {
@@ -126,6 +148,27 @@ export default function Dashboard() {
 
     fetchLockStatus();
     const interval = setInterval(fetchLockStatus, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll Weights
+  useEffect(() => {
+    const fetchWeights = async () => {
+      try {
+        const pythonRes = await fetch('/api/weight?service=python');
+        const pythonData = await pythonRes.json();
+        setPythonWeight(Math.round(pythonData.weight * 100));
+
+        const phpRes = await fetch('/api/weight?service=php');
+        const phpData = await phpRes.json();
+        setPhpWeight(Math.round(phpData.weight * 100));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    fetchWeights();
+    const interval = setInterval(fetchWeights, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -300,28 +343,65 @@ export default function Dashboard() {
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 backdrop-blur-sm flex flex-col justify-center">
                 <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                   <Terminal className="w-5 h-5 text-blue-500" />
-                  Mission Control
+                  Traffic Weight Control
                 </h3>
-                <div className="space-y-4">
-                  <button
-                    onClick={() => handleControl('start')}
-                    disabled={stats.migrationActivePython}
-                    className={`w-full flex items-center justify-center gap-3 py-4 rounded-lg font-bold transition-all transform active:scale-95 ${stats.migrationActivePython
-                      ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
-                      : 'bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20 border border-green-500'
-                      }`}
-                  >
-                    <Play className="w-5 h-5" />
-                    {stats.migrationActivePython ? 'MIGRATION ACTIVE' : 'INITIATE MIGRATION'}
-                  </button>
+                <div className="space-y-6">
+                  {/* Python Weight */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-300">Python → Modern</label>
+                      <span className="text-2xl font-bold text-green-400 font-mono">{pythonWeight}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="10"
+                      value={pythonWeight}
+                      onChange={(e) => handleWeightChange('python', parseInt(e.target.value))}
+                      className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                      style={{
+                        background: `linear-gradient(to right, #10b981 0%, #10b981 ${pythonWeight}%, #374151 ${pythonWeight}%, #374151 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0% (All Legacy)</span>
+                      <span>100% (All Modern)</span>
+                    </div>
+                  </div>
 
-                  <button
-                    onClick={() => handleControl('stop')}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-lg font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/20 border border-red-500 transition-all transform active:scale-95"
-                  >
-                    <Square className="w-5 h-5" />
-                    EMERGENCY ROLLBACK
-                  </button>
+                  {/* PHP Weight */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-300">PHP → Modern (Go)</label>
+                      <span className="text-2xl font-bold text-blue-400 font-mono">{phpWeight}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="10"
+                      value={phpWeight}
+                      onChange={(e) => handleWeightChange('php', parseInt(e.target.value))}
+                      className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                      style={{
+                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${phpWeight}%, #374151 ${phpWeight}%, #374151 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0% (All Legacy)</span>
+                      <span>100% (All Modern)</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-700">
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <strong>Weight</strong> determines traffic distribution in shadowing mode:
+                      <br />• <strong>0%</strong>: Legacy only (no Modern traffic)
+                      <br />• <strong>1-99%</strong>: Both services (shadowing active)
+                      <br />• <strong>100%</strong>: Modern only (no Legacy traffic)
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -371,8 +451,8 @@ export default function Dashboard() {
                     <button
                       onClick={handleToggleTrafficLock}
                       className={`px-3 py-1 text-xs font-bold rounded transition-all ${trafficUnlocked
-                          ? 'bg-green-600 hover:bg-green-500 text-white'
-                          : 'bg-orange-600 hover:bg-orange-500 text-white'
+                        ? 'bg-green-600 hover:bg-green-500 text-white'
+                        : 'bg-orange-600 hover:bg-orange-500 text-white'
                         }`}
                       title={trafficUnlocked ? "Traffic Unlocked - Click to Lock" : "Traffic Locked - Click to Unlock"}
                     >
