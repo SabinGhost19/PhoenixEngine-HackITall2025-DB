@@ -1,52 +1,100 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 function Bottle({ startPosition, endPosition, onComplete, projectName }) {
   const bottleRef = useRef();
+  const glowRef = useRef();
+  const trailRef = useRef();
+  const particlesRef = useRef();
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState('throwing'); // 'throwing', 'floating', 'arrived'
-  
+
+  // Create trail particles
+  const trailPositions = useMemo(() => {
+    const positions = new Float32Array(50 * 3);
+    return positions;
+  }, []);
+
   useFrame((state, delta) => {
     if (!bottleRef.current) return;
-    
+
     if (phase === 'throwing') {
-      // Throwing arc animation
-      const newProgress = Math.min(progress + delta * 0.5, 1);
+      // Throwing arc animation - FASTER and MORE DRAMATIC
+      const newProgress = Math.min(progress + delta * 0.8, 1);
       setProgress(newProgress);
-      
-      // Parabolic arc
+
+      // Higher parabolic arc
       const t = newProgress;
-      const height = Math.sin(t * Math.PI) * 5; // Arc height
-      
+      const height = Math.sin(t * Math.PI) * 8; // Increased arc height
+
       const currentPos = new THREE.Vector3(
         startPosition[0] + (endPosition[0] - startPosition[0]) * t * 0.3,
         startPosition[1] + height,
         startPosition[2] + (endPosition[2] - startPosition[2]) * t * 0.3
       );
-      
+
       bottleRef.current.position.copy(currentPos);
-      bottleRef.current.rotation.z = t * Math.PI * 3; // Spinning
-      
+      bottleRef.current.rotation.z = t * Math.PI * 4; // More spinning
+      bottleRef.current.rotation.x = t * Math.PI * 2;
+
+      // Glow effect - brighter during flight
+      if (glowRef.current) {
+        glowRef.current.scale.setScalar(1 + Math.sin(t * Math.PI) * 0.5);
+      }
+
+      // Update trail
+      if (trailRef.current) {
+        const positions = trailRef.current.geometry.attributes.position.array;
+        for (let i = positions.length - 3; i >= 3; i -= 3) {
+          positions[i] = positions[i - 3];
+          positions[i + 1] = positions[i - 2];
+          positions[i + 2] = positions[i - 1];
+        }
+        positions[0] = currentPos.x;
+        positions[1] = currentPos.y;
+        positions[2] = currentPos.z;
+        trailRef.current.geometry.attributes.position.needsUpdate = true;
+      }
+
       if (newProgress >= 1) {
         setPhase('floating');
         setProgress(0);
       }
     } else if (phase === 'floating') {
-      // Floating to cargo ship
-      const newProgress = Math.min(progress + delta * 0.2, 1);
+      // Floating to cargo ship - FASTER
+      const newProgress = Math.min(progress + delta * 0.4, 1);
       setProgress(newProgress);
-      
+
       const t = newProgress;
       const currentPos = new THREE.Vector3(
         startPosition[0] + (endPosition[0] - startPosition[0]) * (0.3 + t * 0.7),
-        0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.1, // Bobbing on water
+        0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2, // More bobbing
         startPosition[2] + (endPosition[2] - startPosition[2]) * (0.3 + t * 0.7)
       );
-      
+
       bottleRef.current.position.copy(currentPos);
-      bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime) * 0.2;
-      
+      bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime) * 0.3;
+
+      // Glow pulsing
+      if (glowRef.current) {
+        glowRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 3) * 0.3);
+      }
+
+      // Update trail
+      if (trailRef.current) {
+        const positions = trailRef.current.geometry.attributes.position.array;
+        for (let i = positions.length - 3; i >= 3; i -= 3) {
+          positions[i] = positions[i - 3];
+          positions[i + 1] = positions[i - 2];
+          positions[i + 2] = positions[i - 1];
+        }
+        positions[0] = currentPos.x;
+        positions[1] = currentPos.y;
+        positions[2] = currentPos.z;
+        trailRef.current.geometry.attributes.position.needsUpdate = true;
+      }
+
       if (newProgress >= 1) {
         setPhase('arrived');
         if (onComplete) onComplete();
@@ -55,11 +103,54 @@ function Bottle({ startPosition, endPosition, onComplete, projectName }) {
       // Bobbing at destination
       bottleRef.current.position.y = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
       bottleRef.current.rotation.z = Math.sin(state.clock.elapsedTime) * 0.2;
+
+      // Fade glow
+      if (glowRef.current) {
+        glowRef.current.scale.setScalar(Math.max(0, glowRef.current.scale.x - delta * 0.5));
+      }
     }
   });
 
   return (
     <group ref={bottleRef} position={startPosition}>
+      {/* Glowing aura around bottle */}
+      <mesh ref={glowRef} scale={1.5}>
+        <sphereGeometry args={[0.4, 16, 16]} />
+        <meshBasicMaterial
+          color="#00ffff"
+          transparent
+          opacity={0.3}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      {/* Particle trail */}
+      <points ref={trailRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={50}
+            array={trailPositions}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.15}
+          color="#00ffff"
+          transparent
+          opacity={0.6}
+          sizeAttenuation
+        />
+      </points>
+
+      {/* Spotlight on bottle */}
+      <pointLight
+        intensity={2}
+        distance={5}
+        color="#00ffff"
+        position={[0, 1, 0]}
+      />
+
       {/* Bottle body - with glass texture detail */}
       <mesh>
         <cylinderGeometry args={[0.18, 0.2, 1, 12]} />
