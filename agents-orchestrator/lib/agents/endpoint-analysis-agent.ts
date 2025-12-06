@@ -3,7 +3,7 @@ import { generateObject } from 'ai';
 import { EndpointAnalysisSchema, type EndpointAnalysis, type Endpoint } from '../schemas';
 import { retry } from '../utils/helpers';
 
-const MODEL = 'claude-3-5-haiku-20241022';
+const MODEL = 'claude-haiku-4-5-20251001';
 
 interface EndpointAnalysisAgentInput {
   endpoint: Endpoint;

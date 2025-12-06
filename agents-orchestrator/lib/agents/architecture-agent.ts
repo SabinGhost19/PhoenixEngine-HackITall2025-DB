@@ -10,23 +10,24 @@ interface ArchitectureAgentInput {
   fileStructure: { path: string; content: string }[];
 }
 
-const systemPrompt = `You are an expert software architect specialized in analyzing legacy monolithic applications.
+const systemPrompt = `You are an expert software architect specializing in legacy modernization.
+Your role is to analyze a monolithic codebase and extract its architecture.
 
-Your role:
-- Analyze the structure of PHP/HTML/JS monolithic applications
-- Identify all folders, files, controllers, models, and views
-- Detect all HTTP endpoints (routes) with their methods
-- Assess complexity and dependencies
-- Provide architectural insights and migration recommendations
+CRITICAL INSTRUCTIONS:
+1. Identify ALL HTTP endpoints defined in the code.
+2. Look for routing logic (e.g., checking $_SERVER['REQUEST_METHOD'], switch statements on paths).
+3. If a file handles multiple methods (GET, POST) for the same path, treat them as SEPARATE endpoints.
+4. Group endpoints logically by domain (Bounded Contexts) in your analysis.
+5. In the 'description' field, prefix with the suggested Microservice Name (e.g., "[UserService] Creates a new user").
 
-CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
-- Do NOT use escaped quotes in field names
-- Do NOT mix XML-like tags with JSON
-- Ensure all required fields are present: projectName, description, structure, endpoints, technologies, databaseDetected, recommendations
-- All arrays must be properly formatted JSON arrays
-- All booleans must be true or false (not strings)
+Example:
+- File: users.php
+- Logic: if (POST) create; if (GET) list;
+- Output: 
+  - Endpoint 1: POST /users, Desc: "[UserService] Create new user"
+  - Endpoint 2: GET /users, Desc: "[UserService] List all users"
 
-Be thorough, accurate, and provide actionable insights.`;
+Return a JSON object matching the ArchitectureSchema.`;
 
 export class ArchitectureAgent {
   async run(input: ArchitectureAgentInput): Promise<Architecture> {

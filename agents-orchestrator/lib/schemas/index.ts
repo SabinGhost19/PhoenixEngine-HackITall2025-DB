@@ -144,3 +144,13 @@ export type MigrationResult = z.infer<typeof MigrationResultSchema>;
 export type DatabaseQuery = z.infer<typeof DatabaseQuerySchema>;
 export type Dependency = z.infer<typeof DependencySchema>;
 export type FileStructure = z.infer<typeof FileStructureSchema>;
+
+// Schema pentru generarea de trafic
+export const TrafficGenerationSchema = z.object({
+  scriptContent: z.string().describe('The complete Python script code for traffic generation'),
+  requirements: z.array(z.string()).describe('List of Python packages required (e.g., requests)'),
+  instructions: z.string().describe('Instructions on how to run the script'),
+  targetEndpoints: z.array(z.string()).describe('List of endpoints targeted by this script'),
+});
+
+export type TrafficGenerationResult = z.infer<typeof TrafficGenerationSchema>;

@@ -22,10 +22,16 @@ Your role:
 - Generate complete Dockerfile optimized for production
 - Provide clear build and deployment instructions
 - Follow best practices and modern patterns
-- Include proper error handling, logging, and validation
+- Include proper error handling and validation
 - Generate API documentation
 
-CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.
+CRITICAL CONSTRAINTS:
+1. **SIMPLICITY & PERFECTION**: The code must be simple, readable, but absolutely PERFECT and working. No over-engineering.
+2. **NO HEALTH ENDPOINT**: Do NOT generate a /health or /healthz endpoint. The user explicitly requested this.
+3. **NO COMPLEX LOGGING**: Do NOT use complex logging libraries (like zap, logrus, winston). Use standard library logging (e.g., 'log' in Go, 'logging' in Python, 'console' in Node).
+4. **SCHEMA COMPLIANCE**: You MUST populate ALL fields in the JSON schema, including 'dockerfile', 'dependencies', 'environmentVariables', 'buildInstructions', 'runInstructions', and 'apiDocumentation'. Do not leave them undefined.
+
+CRITICAL JSON RULES:
 - Do NOT use escaped quotes in field names
 - Do NOT mix XML-like tags with JSON
 - Ensure all required fields are present
@@ -47,7 +53,7 @@ export class MicroserviceGeneratorAgent {
           schemaDescription: 'Complete microservice code generation including all source files, Dockerfile, dependencies, and documentation',
           system: systemPrompt,
           prompt: userPrompt,
-          temperature: 0.2, // Lower temperature for more consistent code generation
+          temperature: 0.1, // Very low temperature for strict adherence
         });
 
         return result.object;
@@ -67,7 +73,7 @@ export class MicroserviceGeneratorAgent {
 - Use Go 1.21+
 - Use gorilla/mux or chi for routing
 - Use sqlx for database (if needed)
-- Use structured logging (zerolog or zap)
+- **LOGGING**: Use standard 'log' package ONLY. No zap/zerolog.
 - Include proper error handling
 - Files: main.go, handlers/, models/, config/, Dockerfile
 - **CRITICAL**: Use full module path for imports (e.g. "service-name/handlers"), NEVER relative imports (e.g. "./handlers")
@@ -79,6 +85,7 @@ export class MicroserviceGeneratorAgent {
 - Use FastAPI framework
 - Use Pydantic for validation
 - Use SQLAlchemy for database (if needed)
+- **LOGGING**: Use standard 'logging' module ONLY.
 - Include proper async/await patterns
 - Files: main.py, routers/, models/, schemas/, config.py, requirements.txt, Dockerfile
 `,
@@ -88,6 +95,7 @@ export class MicroserviceGeneratorAgent {
 - Use Express.js
 - Use Zod for validation
 - Use Prisma or TypeORM for database (if needed)
+- **LOGGING**: Use standard 'console.log/error' ONLY.
 - Proper async/await and error handling
 - Files: src/index.ts, src/routes/, src/models/, src/middleware/, package.json, tsconfig.json, Dockerfile
 `,
@@ -155,14 +163,11 @@ Generate a COMPLETE microservice with:
    - Request/response examples
    - Error codes
 
-**IMPORTANT:**
-- Generate COMPLETE, WORKING code (no placeholders)
-- Include proper error handling
-- Add logging at key points
-- Validate all inputs
-- Handle edge cases
-- Follow language-specific best practices
-- Use appropriate port (default suggestions: Go=8080, Python=8000, Node=3000)
+**IMPORTANT CONSTRAINTS REITERATED:**
+- **NO /health endpoint**.
+- **NO complex logging** (use standard lib).
+- **PERFECT, WORKING CODE**.
+- **FILL ALL JSON FIELDS** (dockerfile, dependencies, etc.).
 
 Return complete JSON following MicroserviceSchema with ALL files populated.`;
   }

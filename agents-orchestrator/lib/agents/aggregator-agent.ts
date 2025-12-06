@@ -51,13 +51,53 @@ export class AggregatorAgent {
       console.log(`✓ Found ${architecture.endpoints.length} endpoints`);
 
       // Find selected endpoint
-      const selectedEndpoint = architecture.endpoints.find(
+      console.log(`🔍 Looking for endpoint ID: "${input.selectedEndpointId}"`);
+      console.log('📋 Available endpoints:', architecture.endpoints.map(e => `${e.id} (${e.method} ${e.path})`).join(', '));
+
+      let selectedEndpoint = architecture.endpoints.find(
         ep => ep.id === input.selectedEndpointId
       );
 
+      // Fallback: Try case-insensitive match
       if (!selectedEndpoint) {
-        throw new Error(`Endpoint ${input.selectedEndpointId} not found`);
+        console.log('⚠️ Exact match not found, trying case-insensitive match...');
+        selectedEndpoint = architecture.endpoints.find(
+          ep => ep.id.toLowerCase() === input.selectedEndpointId.toLowerCase()
+        );
       }
+
+      // Fallback: Try matching by path if ID looks like a path slug
+      if (!selectedEndpoint) {
+        console.log('⚠️ ID match not found, trying to match by path/method heuristic...');
+        // Example: "list_users" might match "GET /users"
+        const normalizedId = input.selectedEndpointId.replace(/_/g, '').toLowerCase();
+        selectedEndpoint = architecture.endpoints.find(ep => {
+          const normalizedPath = ep.path.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          const normalizedMethod = ep.method.toLowerCase();
+          return normalizedPath.includes(normalizedId) || (normalizedMethod + normalizedPath).includes(normalizedId);
+        });
+      }
+
+      // Fallback: Token-based matching (e.g. "user_create" == "create_user")
+      if (!selectedEndpoint) {
+        console.log('⚠️ Heuristic match failed, trying token-based matching...');
+        const inputTokens = input.selectedEndpointId.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).sort();
+
+        selectedEndpoint = architecture.endpoints.find(ep => {
+          const epTokens = ep.id.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).sort();
+          // Check if arrays are equal
+          return inputTokens.length === epTokens.length &&
+            inputTokens.every((val, index) => val === epTokens[index]);
+        });
+      }
+
+      if (!selectedEndpoint) {
+        console.error(`❌ Endpoint ${input.selectedEndpointId} not found in analyzed architecture.`);
+        console.error('Available IDs:', architecture.endpoints.map(e => e.id));
+        throw new Error(`Endpoint ${input.selectedEndpointId} not found. Available endpoints: ${architecture.endpoints.map(e => e.id).join(', ')}`);
+      }
+
+      console.log(`✅ Selected endpoint: ${selectedEndpoint.id} (${selectedEndpoint.method} ${selectedEndpoint.path})`);
 
       // Step 2: Endpoint Analysis
       console.log('🔍 Step 2/5: Analyzing selected endpoint...');
