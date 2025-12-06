@@ -8,9 +8,9 @@ function Ocean() {
   
   const uniforms = useRef({
     uTime: { value: 0 },
-    uWaveStrength: { value: 0.4 },
-    uColorDeep: { value: new THREE.Color('#1e88e5') },
-    uColorSurface: { value: new THREE.Color('#42a5f5') },
+    uWaveStrength: { value: 0.5 },
+    uColorDeep: { value: new THREE.Color('#2196f3') },
+    uColorSurface: { value: new THREE.Color('#64b5f6') },
     uColorFoam: { value: new THREE.Color('#e3f2fd') }
   });
 

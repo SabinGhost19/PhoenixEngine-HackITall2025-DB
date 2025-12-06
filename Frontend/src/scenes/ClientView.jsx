@@ -64,14 +64,14 @@ function ClientView({ onSendBottle }) {
       </div>
       
       <Canvas
-        camera={{ 
-          position: [-2, 1.5, 3], 
+        camera={{
+          position: [-2, 4, 5],
           fov: 75,
           near: 0.1,
           far: 1000
         }}
         onCreated={({ camera }) => {
-          camera.lookAt(15, 2, -60);
+          camera.lookAt(15, 3, -60);
         }}
         gl={{ 
           antialias: false,
