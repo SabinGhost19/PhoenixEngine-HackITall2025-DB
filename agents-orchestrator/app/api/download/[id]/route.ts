@@ -6,10 +6,11 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const migrationId = params.id;
+    const { id } = await params;
+    const migrationId = id;
     const result = migrationResults.get(migrationId);
 
     if (!result) {

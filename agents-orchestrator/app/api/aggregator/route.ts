@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { aggregatorAgent } from '@/lib/agents/aggregator-agent';
-import { migrationResults } from '@/lib/utils/storage';
+import { migrationResults, saveMigrationToDisk } from '@/lib/utils/storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for full workflow
@@ -39,9 +39,15 @@ export async function POST(request: NextRequest) {
     const migrationId = result.downloadUrl.split('/').pop()!;
     migrationResults.set(migrationId, result);
 
+    // Save to disk
+    const outputPath = saveMigrationToDisk(migrationId, result);
+
     return NextResponse.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        outputPath,
+      },
     });
   } catch (error) {
     console.error('Aggregator error:', error);
