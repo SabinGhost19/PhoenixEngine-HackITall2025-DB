@@ -2,7 +2,7 @@ import { useRef, useMemo, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { createContainerTexture, createMetalTexture, createDeckTexture, createRustyMetalTexture } from '../utils/textures';
 import dockerLogo from '../assets/docker.png';
-import kubernetesLogo from '../assets/kubernetes.png';
+import kubernetesLogo from '../assets/Kubernetes-Logo.jpg';
 
 // Container component with detailed textures
 function Container({ position, color, label = "CARGO" }) {
@@ -631,48 +631,54 @@ function CargoShip({ position = [0, 0, -30] }) {
         </mesh>
       </group>
       
-      {/* KUBERNETES FLAG MAST - On stern (back) of ship, visible from client boats */}
-      <group position={[0, -0.5, 28]}>
-        {/* Mast pole - tall metal pole on stern deck */}
-        <mesh position={[0, 8, 0]}>
-          <cylinderGeometry args={[0.3, 0.4, 16, 8]} />
-          <meshStandardMaterial map={metalTexture3} flatShading />
-        </mesh>
-
-        {/* Mast base - reinforced on deck */}
-        <mesh position={[0, 0.5, 0]}>
-          <cylinderGeometry args={[0.6, 0.8, 1, 8]} />
+      {/* KUBERNETES FLAG MAST - On opposite side of deck, visible from boat */}
+      <group position={[-8, -0.5, 10]}>
+        {/* Mast base - firmly on deck */}
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.7, 0.9, 0.6, 8]} />
           <meshStandardMaterial map={metalTexture2} flatShading />
         </mesh>
-
-        {/* Horizontal flag pole extending backward from stern */}
-        <mesh position={[0, 14, 3]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.15, 0.15, 6, 8]} />
+        
+        {/* Mast pole - tall metal pole starting from base */}
+        <mesh position={[0, 10, 0]}>
+          <cylinderGeometry args={[0.3, 0.4, 19, 8]} />
+          <meshStandardMaterial map={metalTexture3} flatShading />
+        </mesh>
+        
+        {/* Horizontal flag pole extending sideways from mast */}
+        <mesh position={[3.5, 17, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.12, 0.12, 7, 8]} />
           <meshStandardMaterial map={metalTexture4} flatShading />
         </mesh>
-
-        {/* KUBERNETES FLAG - Large, hanging from stern, facing boats at bow */}
-        {k8sTexture && (
-          <mesh position={[0, 12, 6]} rotation={[0, Math.PI, 0]}>
-            <planeGeometry args={[8, 5]} />
-            <meshStandardMaterial map={k8sTexture} transparent alphaTest={0.5} side={THREE.DoubleSide} />
-          </mesh>
-        )}
-
-        {/* Mast top cap */}
-        <mesh position={[0, 16.5, 0]}>
-          <sphereGeometry args={[0.4, 8, 8]} />
-          <meshStandardMaterial color="#ffaa00" flatShading />
+        
+        {/* KUBERNETES FLAG - Large, hanging from horizontal pole */}
+        <mesh position={[4, 14.5, 0]}>
+          <planeGeometry args={[7, 5]} />
+          <meshStandardMaterial map={k8sTexture} transparent alphaTest={0.5} side={THREE.DoubleSide} />
         </mesh>
-
-        {/* Support cables for stability */}
-        <mesh position={[-2, 7, -1.5]} rotation={[Math.PI / 12, 0, Math.PI / 6]}>
-          <cylinderGeometry args={[0.05, 0.05, 9, 6]} />
-          <meshStandardMaterial color="#666666" flatShading />
+        
+        {/* Mast top cap - at the very top */}
+        <mesh position={[0, 19.8, 0]}>
+          <sphereGeometry args={[0.5, 8, 8]} />
+          <meshStandardMaterial color="#326ce5" flatShading />
         </mesh>
-        <mesh position={[2, 7, -1.5]} rotation={[Math.PI / 12, 0, -Math.PI / 6]}>
-          <cylinderGeometry args={[0.05, 0.05, 9, 6]} />
-          <meshStandardMaterial color="#666666" flatShading />
+        
+        {/* Support cables from mast to deck for stability */}
+        <mesh position={[-1.5, 9, -1.5]} rotation={[0.3, 0, 0.2]}>
+          <cylinderGeometry args={[0.04, 0.04, 10, 6]} />
+          <meshStandardMaterial color="#555555" flatShading />
+        </mesh>
+        <mesh position={[1.5, 9, -1.5]} rotation={[0.3, 0, -0.2]}>
+          <cylinderGeometry args={[0.04, 0.04, 10, 6]} />
+          <meshStandardMaterial color="#555555" flatShading />
+        </mesh>
+        <mesh position={[-1.5, 9, 1.5]} rotation={[-0.3, 0, 0.2]}>
+          <cylinderGeometry args={[0.04, 0.04, 10, 6]} />
+          <meshStandardMaterial color="#555555" flatShading />
+        </mesh>
+        <mesh position={[1.5, 9, 1.5]} rotation={[-0.3, 0, -0.2]}>
+          <cylinderGeometry args={[0.04, 0.04, 10, 6]} />
+          <meshStandardMaterial color="#555555" flatShading />
         </mesh>
       </group>
       
