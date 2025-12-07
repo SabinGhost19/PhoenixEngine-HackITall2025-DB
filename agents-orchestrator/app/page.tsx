@@ -1,109 +1,110 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Zap, GitBranch, Code, Shield } from 'lucide-react';
+import { ArrowRight, Zap, GitBranch, Code, Shield, Terminal } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const router = useRouter();
+  const [text, setText] = useState('');
+  const fullText = 'INITIALIZING SYSTEM...';
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setText(fullText.slice(0, i));
+      i++;
+      if (i > fullText.length) clearInterval(interval);
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Monolith to Microservices
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              AI-Powered Migration
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Transform your legacy PHP monolith into modern microservices with our
-            intelligent multi-agent system. Choose your target language and get
-            production-ready code in minutes.
-          </p>
-          <button
-            onClick={() => router.push('/upload')}
-            className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors shadow-lg"
-          >
-            Start Migration
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </button>
-        </div>
+    <div className="min-h-screen p-8 flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Background Grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,176,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,176,0,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
-        {/* Features */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <Zap className="w-6 h-6 text-blue-600" />
+      <div className="max-w-6xl w-full relative z-10">
+        {/* Header Terminal */}
+        <div className="box-retro mb-12 p-8 animate-in fade-in zoom-in duration-1000">
+          <div className="flex items-center justify-between border-b border-amber-500/30 pb-4 mb-6">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-6 h-6 text-amber-500 animate-pulse" />
+              <span className="text-xl font-bold tracking-widest text-glow">AGENTS_ORCHESTRATOR_V2.0</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Fast Analysis
-            </h3>
-            <p className="text-gray-600">
-              AI-powered architecture analysis detects all endpoints and dependencies
-              in seconds.
-            </p>
+            <div className="text-sm text-amber-500/70 font-mono">
+              SYS.STATUS: <span className="text-green-500 animate-pulse">ONLINE</span>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <GitBranch className="w-6 h-6 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Multi-Language
-            </h3>
-            <p className="text-gray-600">
-              Generate microservices in Go, Python (FastAPI), or Node.js +
-              TypeScript.
-            </p>
-          </div>
+          <div className="space-y-6 text-center">
+            <pre className="text-[10px] md:text-xs leading-[10px] text-amber-500/50 font-mono select-none hidden md:block">
+              {`
+    _    ____ _____ _   _ _____ ____    ___  ____   ____ _   _ _____ ____ _____ ____      _  _____ ___  ____  
+   / \\  / ___| ____| \\ | |_   _/ ___|  / _ \\|  _ \\ / ___| | | | ____/ ___|_   _|  _ \\    / \\|_   _/ _ \\|  _ \\ 
+  / _ \\| |  _|  _| |  \\| | | | \\___ \\ | | | | |_) | |   | |_| |  _| \\___ \\ | | | |_) |  / _ \\ | || | | | |_) |
+ / ___ \\ |_| | |___| |\\  | | |  ___) || |_| |  _ <| |___|  _  | |___ ___) || | |  _ <  / ___ \\| || |_| |  _ < 
+/_/   \\_\\____|_____|_| \\_| |_| |____/  \\___/|_| \\_\\\\____|_| |_|_____|____/ |_| |_| \\_\\/_/   \\_\\_| \\___/|_| \\_\\
+`}
+            </pre>
 
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <Code className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Production Ready
-            </h3>
-            <p className="text-gray-600">
-              Complete with Dockerfile, tests, error handling, and API
-              documentation.
-            </p>
-          </div>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-glow-lg tracking-tighter">
+              LEGACY <span className="text-amber-500 animate-pulse">Transformation</span> SYSTEM
+            </h1>
 
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-              <Shield className="w-6 h-6 text-red-600" />
+            <div className="font-mono text-xl text-amber-500/80 h-8 mb-8">
+              &gt; {text}<span className="animate-blink">_</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Security First
-            </h3>
-            <p className="text-gray-600">
-              Automated security checks and validation for safe, reliable code.
-            </p>
+
+            <button
+              onClick={() => router.push('/upload')}
+              className="btn-retro text-xl px-12 py-4 group relative overflow-hidden"
+            >
+              <span className="relative z-10 flex items-center gap-3">
+                INITIALIZE MIGRATION PROTOCOL
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+              </span>
+            </button>
           </div>
         </div>
 
-        {/* How It Works */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            How It Works
+        {/* Modules Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {[
+            { icon: Zap, title: "ANALYSIS_MODULE", desc: "Deep structural scanning of legacy codebases." },
+            { icon: GitBranch, title: "LANG_CONVERTER", desc: "Polyglot synthesis: Go, Python, Node.js." },
+            { icon: Code, title: "CODE_GEN_CORE", desc: "Production-grade microservice fabrication." },
+            { icon: Shield, title: "SECURITY_LAYER", desc: "Automated vulnerability detection protocols." }
+          ].map((item, idx) => (
+            <div key={idx} className="box-retro p-6 hover:bg-amber-900/10 transition-colors group cursor-default">
+              <div className="w-12 h-12 border border-amber-500/50 flex items-center justify-center mb-4 group-hover:border-amber-500 group-hover:shadow-[0_0_10px_rgba(255,176,0,0.4)] transition-all">
+                <item.icon className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-glow">{item.title}</h3>
+              <p className="text-sm text-amber-500/70 font-mono">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* System Logs / How It Works */}
+        <div className="box-retro p-8">
+          <h2 className="text-2xl font-bold mb-6 border-b border-amber-500/30 pb-2 flex items-center gap-2">
+            <span className="animate-pulse">▶</span> EXECUTION_PIPELINE
           </h2>
-          <div className="grid md:grid-cols-5 gap-6">
+          <div className="grid md:grid-cols-5 gap-4 font-mono text-sm">
             {[
-              { num: '1', title: 'Upload', desc: 'Upload your monolith code' },
-              { num: '2', title: 'Analyze', desc: 'AI detects endpoints' },
-              { num: '3', title: 'Select', desc: 'Choose endpoint & language' },
-              { num: '4', title: 'Generate', desc: 'AI creates microservice' },
-              { num: '5', title: 'Download', desc: 'Get production-ready code' },
-            ].map((step, idx) => (
-              <div key={idx} className="text-center">
-                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3">
-                  {step.num}
+              { step: "01", label: "UPLOAD_SOURCE", status: "WAITING" },
+              { step: "02", label: "SCAN_ARCH", status: "PENDING" },
+              { step: "03", label: "SELECT_TARGET", status: "PENDING" },
+              { step: "04", label: "GENERATE_MS", status: "PENDING" },
+              { step: "05", label: "DEPLOY_PKG", status: "PENDING" },
+            ].map((item, idx) => (
+              <div key={idx} className="border border-amber-500/20 p-4 text-center hover:border-amber-500/50 transition-colors">
+                <div className="text-xs text-amber-500/50 mb-1">STEP_{item.step}</div>
+                <div className="font-bold mb-2">{item.label}</div>
+                <div className="text-[10px] bg-amber-900/30 inline-block px-2 py-0.5 rounded text-amber-500/70">
+                  [{item.status}]
                 </div>
-                <h4 className="font-bold text-gray-900 mb-1">{step.title}</h4>
-                <p className="text-sm text-gray-600">{step.desc}</p>
               </div>
             ))}
           </div>

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import EndpointTable from '@/components/endpoint/EndpointTable';
 import { Architecture, Endpoint } from '@/lib/schemas';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, Terminal, Cpu, Database, Network } from 'lucide-react';
+import RetroArchitectureDiagram from '@/components/retro/RetroArchitectureDiagram';
 
 function ScanContent() {
   const router = useRouter();
@@ -17,10 +18,34 @@ function ScanContent() {
   const [architecture, setArchitecture] = useState<Architecture | null>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [retryCount, setRetryCount] = useState(0);
+  const [scanLog, setScanLog] = useState<string[]>([]);
 
   // Prevent duplicate executions
   const analysisKey = `scan_started_${uploadId}`;
   const resultKey = `scan_result_${uploadId}`;
+
+  // Simulated scan logs
+  useEffect(() => {
+    if (loading) {
+      const logs = [
+        "INITIALIZING_SCANNER...",
+        "MOUNTING_FILE_SYSTEM...",
+        "PARSING_PHP_AST...",
+        "TRACING_DEPENDENCIES...",
+        "DETECTING_ENDPOINTS...",
+        "ANALYZING_COMPLEXITY...",
+        "GENERATING_REPORT..."
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < logs.length) {
+          setScanLog(prev => [...prev, logs[i]]);
+          i++;
+        }
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!uploadId) {
@@ -131,6 +156,7 @@ function ScanContent() {
     setError(null);
     setIsNetworkError(false);
     setRetryCount(prev => prev + 1);
+    setScanLog([]);
   };
 
   const handleSelectEndpoint = (endpoint: Endpoint) => {
@@ -145,11 +171,29 @@ function ScanContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Analyzing architecture...</p>
-          <p className="text-sm text-gray-400 mt-2">This may take a minute...</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="box-retro p-8 max-w-lg w-full">
+          <div className="flex items-center gap-3 mb-6 border-b border-amber-500/30 pb-4">
+            <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+            <h2 className="text-xl font-bold text-glow">SYSTEM_SCANNING_IN_PROGRESS</h2>
+          </div>
+
+          <div className="space-y-2 font-mono text-sm h-48 overflow-hidden relative">
+            {scanLog.map((log, i) => (
+              <div key={i} className="text-amber-500/80">
+                <span className="text-amber-500/40 mr-2">[{new Date().toLocaleTimeString()}]</span>
+                &gt; {log}
+              </div>
+            ))}
+            <div className="animate-pulse text-amber-500">_</div>
+
+            {/* Scanline overlay for log area */}
+            <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+          </div>
+
+          <div className="mt-6 w-full bg-amber-900/20 h-2 border border-amber-500/30">
+            <div className="h-full bg-amber-500 animate-[width_2s_ease-in-out_infinite] w-1/2"></div>
+          </div>
         </div>
       </div>
     );
@@ -157,32 +201,28 @@ function ScanContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
-          <div className={`flex items-center mb-4 ${isNetworkError ? 'text-yellow-600' : 'text-red-600'}`}>
-            {isNetworkError ? (
-              <AlertTriangle className="w-8 h-8 mr-3" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                <span className="text-red-600 font-bold">!</span>
-              </div>
-            )}
-            <h2 className="text-xl font-bold">{isNetworkError ? 'Connection Issue' : 'Error'}</h2>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="box-retro p-8 max-w-md w-full border-red-500/50">
+          <div className={`flex items-center mb-6 ${isNetworkError ? 'text-yellow-500' : 'text-red-500'}`}>
+            <AlertTriangle className="w-8 h-8 mr-3 animate-pulse" />
+            <h2 className="text-xl font-bold tracking-widest">SYSTEM_ERROR</h2>
           </div>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex gap-3">
+          <p className="text-amber-500/80 mb-8 font-mono border-l-2 border-red-500/50 pl-4 py-2 bg-red-900/10">
+            {error}
+          </p>
+          <div className="flex gap-4">
             <button
               onClick={() => router.push('/upload')}
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded"
+              className="flex-1 btn-retro text-sm py-2"
             >
-              Start Over
+              ABORT
             </button>
             <button
               onClick={handleRetry}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2"
+              className="flex-1 btn-retro text-sm py-2 flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
-              Retry
+              RETRY
             </button>
           </div>
         </div>
@@ -191,35 +231,60 @@ function ScanContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen py-12 px-4">
+      <div className="max-w-7xl mx-auto">
         {architecture && (
           <>
-            <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {architecture.projectName}
-              </h1>
-              <p className="text-gray-600 mb-4">{architecture.description}</p>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 rounded p-4">
-                  <p className="text-sm text-gray-600">Technologies</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    {architecture.technologies.join(', ')}
-                  </p>
+            <div className="box-retro p-8 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-amber-500/30 pb-4 gap-4">
+                <div>
+                  <div className="text-xs text-amber-500/50 font-mono mb-1">PROJECT_ID: {uploadId?.split('-')[1]}</div>
+                  <h1 className="text-3xl font-bold text-glow tracking-tight">
+                    {architecture.projectName.toUpperCase()}
+                  </h1>
                 </div>
-                <div className="bg-green-50 rounded p-4">
-                  <p className="text-sm text-gray-600">Endpoints</p>
-                  <p className="text-lg font-bold text-green-600">
-                    {architecture.endpoints.length}
-                  </p>
-                </div>
-                <div className="bg-purple-50 rounded p-4">
-                  <p className="text-sm text-gray-600">Controllers</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {architecture.structure.controllers.length}
-                  </p>
+                <div className="flex gap-2">
+                  <span className="px-3 py-1 border border-green-500/50 text-green-500 text-xs font-bold bg-green-900/10">
+                    STATUS: ANALYZED
+                  </span>
                 </div>
               </div>
+
+              <p className="text-amber-500/80 mb-8 font-mono max-w-3xl">
+                &gt; {architecture.description}
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="border border-amber-500/20 p-4 bg-amber-900/5 hover:border-amber-500/50 transition-colors">
+                  <div className="flex items-center gap-2 mb-2 text-amber-500/70 text-sm font-bold">
+                    <Cpu className="w-4 h-4" /> TECH_STACK
+                  </div>
+                  <div className="text-xl font-bold text-glow">
+                    {architecture.technologies.join(', ')}
+                  </div>
+                </div>
+                <div className="border border-amber-500/20 p-4 bg-amber-900/5 hover:border-amber-500/50 transition-colors">
+                  <div className="flex items-center gap-2 mb-2 text-amber-500/70 text-sm font-bold">
+                    <Network className="w-4 h-4" /> ENDPOINTS_DETECTED
+                  </div>
+                  <div className="text-xl font-bold text-glow">
+                    {architecture.endpoints.length}
+                  </div>
+                </div>
+                <div className="border border-amber-500/20 p-4 bg-amber-900/5 hover:border-amber-500/50 transition-colors">
+                  <div className="flex items-center gap-2 mb-2 text-amber-500/70 text-sm font-bold">
+                    <Database className="w-4 h-4" /> CONTROLLERS
+                  </div>
+                  <div className="text-xl font-bold text-glow">
+                    {architecture.structure.controllers.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Retro Architecture Diagram */}
+            <div className="mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+              <RetroArchitectureDiagram />
             </div>
 
             <EndpointTable
@@ -235,8 +300,8 @@ function ScanContent() {
 
 export default function ScanPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
     </div>}>
       <ScanContent />
     </Suspense>

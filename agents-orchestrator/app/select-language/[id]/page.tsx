@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import LanguageSelector from '@/components/generator/LanguageSelector';
-import { Loader2, CheckCircle, Code2, Sparkles, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, Code2, Sparkles, XCircle, Terminal, Cpu, Box, Layers, Hexagon, ChevronRight, RefreshCw, ArrowRight, Activity, Rocket, ShieldCheck } from 'lucide-react';
+import RetroGenerationScene from '@/components/retro/RetroGenerationScene';
+import RetroLoader from '@/components/retro/RetroLoader';
+import RetroDockerContainer from '@/components/retro/RetroDockerContainer';
 
 export default function SelectLanguagePage() {
   const router = useRouter();
@@ -11,20 +13,30 @@ export default function SelectLanguagePage() {
   const endpointId = params.id as string;
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [progress, setProgress] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [generationLog, setGenerationLog] = useState<string[]>([]);
+  const [successData, setSuccessData] = useState<any>(null);
 
   const steps = [
-    'Creating migration job...',
-    'Analyzing monolith architecture...',
-    'Processing selected endpoint...',
-    'Generating microservice code...',
-    'Repairing and optimizing code...',
-    'Verifying generated code...',
-    'Packaging microservice...',
+    'INITIALIZING_MIGRATION_JOB...',
+    'ANALYZING_MONOLITH_ARCHITECTURE...',
+    'PROCESSING_SELECTED_ENDPOINT...',
+    'GENERATING_MICROSERVICE_CODE...',
+    'REPAIRING_AND_OPTIMIZING_CODE...',
+    'VERIFYING_GENERATED_CODE...',
+    'PACKAGING_MICROSERVICE...',
   ];
+
+  // Add log entry effect
+  useEffect(() => {
+    if (progress) {
+      setGenerationLog(prev => [...prev, `> ${progress} [${new Date().toLocaleTimeString()}]`]);
+    }
+  }, [progress]);
 
   const handleLanguageSelect = async (language: 'go' | 'python' | 'node-ts') => {
     sessionStorage.setItem('selectedLanguage', language);
@@ -102,7 +114,7 @@ export default function SelectLanguagePage() {
 
           // Update progress based on job status
           if (statusData.progress) {
-            setProgress(statusData.progress);
+            setProgress(statusData.progress.toUpperCase());
 
             // Map progress text to step number
             if (statusData.progress.includes('architecture')) setCurrentStep(1);
@@ -120,9 +132,9 @@ export default function SelectLanguagePage() {
 
             // Save result to sessionStorage
             sessionStorage.setItem('migrationResult', JSON.stringify(statusData.result));
-
-            // Navigate to result page
-            router.push(`/result/${endpointId}`);
+            setSuccessData(statusData.result);
+            setIsGenerating(false);
+            setIsComplete(true);
             return;
           }
 
@@ -151,33 +163,38 @@ export default function SelectLanguagePage() {
     }
   };
 
+  const handleLaunch = () => {
+    router.push(`/result/${endpointId}`);
+  };
+
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-              <XCircle className="w-8 h-8 text-red-600" />
-            </div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="box-retro p-8 max-w-md w-full border-red-500/50">
+          <div className="flex items-center mb-6 text-red-500">
+            <XCircle className="w-8 h-8 mr-3 animate-pulse" />
+            <h2 className="text-xl font-bold tracking-widest">GENERATION_FAILED</h2>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Generation Failed</h2>
-          <p className="text-gray-600 text-center mb-6">{error}</p>
-          <div className="flex gap-3">
+          <p className="text-amber-500/80 mb-8 font-mono border-l-2 border-red-500/50 pl-4 py-2 bg-red-900/10">
+            {error}
+          </p>
+          <div className="flex gap-4">
             <button
               onClick={() => router.back()}
-              className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+              className="flex-1 btn-retro text-sm py-2"
             >
-              Go Back
+              RETURN
             </button>
             <button
               onClick={() => {
                 setError(null);
                 setIsGenerating(false);
               }}
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
+              className="flex-1 btn-retro text-sm py-2 flex items-center justify-center gap-2"
             >
-              Try Again
+              <RefreshCw className="w-4 h-4" />
+              RETRY_OP
             </button>
           </div>
         </div>
@@ -188,62 +205,86 @@ export default function SelectLanguagePage() {
   // Loading/Generating state
   if (isGenerating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="max-w-lg w-full mx-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            {/* Animated Icon */}
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Code2 className="w-10 h-10 text-blue-600" />
-                </div>
-                <div className="absolute -top-1 -right-1">
-                  <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
-                </div>
-              </div>
+      <RetroGenerationScene
+        currentStep={currentStep}
+        steps={steps}
+        log={generationLog}
+        elapsedTime={elapsedTime}
+      />
+    );
+  }
+
+  // Success/Complete state
+  if (isComplete) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 font-mono overflow-hidden relative">
+        {/* Confetti / Particle Effect Background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-1 h-full bg-green-500/20 animate-[moveVertical_3s_linear_infinite]"></div>
+          <div className="absolute top-0 right-1/4 w-1 h-full bg-green-500/20 animate-[moveVertical_4s_linear_infinite]"></div>
+          <div className="absolute top-1/4 left-0 w-full h-1 bg-green-500/20 animate-[moveHorizontal_5s_linear_infinite]"></div>
+        </div>
+
+        <div className="box-retro p-12 max-w-4xl w-full relative z-10 animate-in zoom-in duration-500 border-green-500/50 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+
+          <div className="flex flex-col items-center text-center mb-12">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full animate-pulse"></div>
+              <ShieldCheck className="w-24 h-24 text-green-500 relative z-10 drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]" />
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
-              Generating Your Microservice
-            </h2>
-            <p className="text-gray-500 text-center mb-8">
-              AI agents are working on your code...
-            </p>
-
-            {/* Progress */}
-            <div className="space-y-4 mb-8">
-              {steps.map((step, idx) => (
-                <div key={idx} className="flex items-center space-x-3">
-                  {idx < currentStep ? (
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                  ) : idx === currentStep ? (
-                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" />
-                  )}
-                  <span className={`text-sm ${idx <= currentStep ? 'text-gray-700' : 'text-gray-400'}`}>
-                    {step}
-                  </span>
-                </div>
-              ))}
+            <h1 className="text-5xl font-bold text-green-500 mb-2 tracking-tighter animate-bounce">
+              MISSION_ACCOMPLISHED
+            </h1>
+            <div className="text-green-400/70 text-lg tracking-[0.5em] font-bold">
+              MIGRATION_SEQUENCE_COMPLETE
             </div>
-
-            {/* Current Status */}
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center space-x-2">
-                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                <span className="text-blue-700 font-medium">{progress}</span>
-              </div>
-              <p className="text-blue-600 text-sm mt-2">
-                Elapsed: {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
-              </p>
-            </div>
-
-            {/* Info */}
-            <p className="text-gray-400 text-xs text-center mt-6">
-              ⚡ Using async job queue - safe to wait
-            </p>
           </div>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Deployed Container */}
+            <div className="flex flex-col items-center justify-center space-y-6">
+              <div className="relative">
+                <div className="absolute -inset-10 bg-green-500/10 rounded-full blur-xl animate-pulse"></div>
+                <RetroDockerContainer className="scale-125" />
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-green-500/50 mb-1">ARTIFACT_STATUS</div>
+                <div className="text-green-400 font-bold bg-green-900/20 px-4 py-1 rounded border border-green-500/30">
+                  READY_FOR_DEPLOYMENT
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Stats & Action */}
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b border-green-500/20 pb-2">
+                  <span className="text-green-500/70">TOTAL_TIME</span>
+                  <span className="text-xl font-bold text-green-400">{elapsedTime}s</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-green-500/20 pb-2">
+                  <span className="text-green-500/70">MICROSERVICES</span>
+                  <span className="text-xl font-bold text-green-400">1</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-green-500/20 pb-2">
+                  <span className="text-green-500/70">OPTIMIZATION</span>
+                  <span className="text-xl font-bold text-green-400">100%</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLaunch}
+                className="w-full btn-retro text-xl py-6 group relative overflow-hidden border-green-500 text-green-500 hover:bg-green-500/10"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-3">
+                  <Rocket className="w-6 h-6 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+                  LAUNCH_SYSTEM_DASHBOARD
+                </span>
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     );
@@ -251,8 +292,107 @@ export default function SelectLanguagePage() {
 
   // Language selection
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <LanguageSelector onSelect={handleLanguageSelect} />
+    <div className="min-h-screen py-12 px-4 font-mono">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-12 border-b border-amber-500/30 pb-4">
+          <div>
+            <div className="text-xs text-amber-500/50 mb-1">PHASE_03</div>
+            <h1 className="text-3xl font-bold text-glow flex items-center gap-3">
+              <Cpu className="w-8 h-8" />
+              TARGET_SYSTEM_SELECTION
+            </h1>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* GO Language Card */}
+          <div
+            onClick={() => handleLanguageSelect('go')}
+            className="box-retro p-8 group cursor-pointer hover:bg-amber-900/10 transition-all relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="text-9xl font-black text-amber-500">GO</div>
+            </div>
+
+            <div className="h-48 flex items-center justify-center mb-6 perspective-1000">
+              <div className="w-24 h-24 relative transform-style-3d group-hover:animate-[spin_4s_linear_infinite]">
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 translate-z-12 flex items-center justify-center text-4xl font-bold text-blue-500">GO</div>
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 -translate-z-12 rotate-y-180"></div>
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 translate-x-12 rotate-y-90"></div>
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 -translate-x-12 -rotate-y-90"></div>
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 -translate-y-12 rotate-x-90"></div>
+                <div className="absolute inset-0 border-4 border-blue-500/80 bg-blue-500/20 translate-y-12 -rotate-x-90"></div>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold mb-2 text-blue-500 group-hover:text-glow">GO_LANG</h3>
+            <p className="text-amber-500/60 text-sm mb-6">
+              High-performance systems programming. Ideal for microservices requiring concurrency and speed.
+            </p>
+            <div className="flex items-center text-blue-500 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+              INITIALIZE_PROTOCOL <ChevronRight className="w-4 h-4 ml-1" />
+            </div>
+          </div>
+
+          {/* Python Card */}
+          <div
+            onClick={() => handleLanguageSelect('python')}
+            className="box-retro p-8 group cursor-pointer hover:bg-amber-900/10 transition-all relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="text-9xl font-black text-amber-500">PY</div>
+            </div>
+
+            <div className="h-48 flex items-center justify-center mb-6 perspective-1000">
+              <div className="relative w-32 h-32 group-hover:animate-[spin_3s_linear_infinite]">
+                <div className="absolute inset-0 border-4 border-yellow-500/50 rounded-full border-t-transparent rotate-45"></div>
+                <div className="absolute inset-2 border-4 border-blue-500/50 rounded-full border-b-transparent -rotate-45"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 border-2 border-amber-500/30 rotate-45 flex items-center justify-center">
+                    <div className="w-8 h-8 bg-amber-500/20"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold mb-2 text-yellow-500 group-hover:text-glow">PYTHON</h3>
+            <p className="text-amber-500/60 text-sm mb-6">
+              Versatile and readable. Excellent for data-heavy processing and AI integration.
+            </p>
+            <div className="flex items-center text-yellow-500 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+              INITIALIZE_PROTOCOL <ChevronRight className="w-4 h-4 ml-1" />
+            </div>
+          </div>
+
+          {/* Node.js Card */}
+          <div
+            onClick={() => handleLanguageSelect('node-ts')}
+            className="box-retro p-8 group cursor-pointer hover:bg-amber-900/10 transition-all relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="text-9xl font-black text-amber-500">JS</div>
+            </div>
+
+            <div className="h-48 flex items-center justify-center mb-6 perspective-1000">
+              <div className="relative w-32 h-32 transform-style-3d group-hover:animate-[spin_5s_linear_infinite]">
+                <Hexagon className="w-32 h-32 text-green-500/50 absolute inset-0 animate-pulse" />
+                <Hexagon className="w-24 h-24 text-green-500/80 absolute top-4 left-4 rotate-90" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-green-500 font-bold text-xl">TS</div>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold mb-2 text-green-500 group-hover:text-glow">NODE_TS</h3>
+            <p className="text-amber-500/60 text-sm mb-6">
+              Event-driven I/O. Perfect for real-time applications and unified JS stack.
+            </p>
+            <div className="flex items-center text-green-500 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+              INITIALIZE_PROTOCOL <ChevronRight className="w-4 h-4 ml-1" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
