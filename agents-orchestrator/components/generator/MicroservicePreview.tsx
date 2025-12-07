@@ -1,7 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Microservice, VerificationResult } from '@/lib/schemas';
-import { FileText, Download, CheckCircle, AlertCircle, Info, Terminal, Shield, Code, ChevronRight } from 'lucide-react';
+import { FileText, Download, CheckCircle, AlertCircle, Info, Terminal, Shield, Code, ChevronRight, Cpu, Layers, Zap, Activity, Server, Database } from 'lucide-react';
+import RetroHolographicDisplay from '../retro/RetroHolographicDisplay';
+import RetroCyberBackground from '../retro/RetroCyberBackground';
+import RetroFileStack from '../retro/RetroFileStack';
 
 interface MicroservicePreviewProps {
   microservice: Microservice;
@@ -14,253 +18,200 @@ export default function MicroservicePreview({
   verification,
   downloadUrl,
 }: MicroservicePreviewProps) {
+  // Default to Dockerfile or the first file
+  const [selectedFile, setSelectedFile] = useState<{ path: string; content: string } | null>(null);
+
+  // Initialize selected file
+  useEffect(() => {
+    if (microservice.files.length > 0) {
+      // Create a virtual file for Dockerfile to include it in the stack if needed, 
+      // or just select the first actual file. 
+      // Let's treat Dockerfile as a file in the stack for better UX.
+      const dockerFileObj = { path: 'Dockerfile', content: microservice.dockerfile, description: 'Container Configuration' };
+      // We'll combine them in the render, but for initial state:
+      setSelectedFile(dockerFileObj);
+    }
+  }, [microservice]);
+
+  // Combine Dockerfile and other files for the stack
+  const allFiles = [
+    { path: 'Dockerfile', content: microservice.dockerfile, description: 'Container Configuration' },
+    ...microservice.files
+  ];
+
   return (
-    <div className="w-full space-y-8 font-mono">
-      {/* Header */}
-      <div className="box-retro p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Code className="w-32 h-32 text-amber-500" />
-        </div>
+    <div className="w-full relative font-mono overflow-hidden rounded-lg min-h-[900px] bg-black">
+      {/* Immersive Background */}
+      <RetroCyberBackground />
 
-        <div className="flex flex-col md:flex-row items-start justify-between gap-6 relative z-10">
-          <div>
-            <h2 className="text-3xl font-bold text-amber-500 text-glow mb-2">
-              {microservice.serviceName}
-            </h2>
-            <p className="text-amber-500/60 max-w-2xl">{microservice.description}</p>
-          </div>
-          <a
-            href={downloadUrl}
-            download
-            className="btn-retro px-6 py-3 flex items-center gap-2 text-sm"
-          >
-            <Download className="w-4 h-4" />
-            DOWNLOAD_ZIP
-          </a>
-        </div>
+      <div className="relative z-10 p-6 flex flex-col h-full gap-6">
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-          <div className="bg-blue-900/10 border border-blue-500/30 p-4 rounded">
-            <p className="text-xs text-blue-500/70 mb-1 uppercase">Language</p>
-            <p className="text-xl font-bold text-blue-400 text-glow">
-              {microservice.language.toUpperCase()}
-            </p>
-          </div>
-          <div className="bg-purple-900/10 border border-purple-500/30 p-4 rounded">
-            <p className="text-xs text-purple-500/70 mb-1 uppercase">Port</p>
-            <p className="text-xl font-bold text-purple-400 text-glow">
-              {microservice.port}
-            </p>
-          </div>
-          <div className="bg-green-900/10 border border-green-500/30 p-4 rounded">
-            <p className="text-xs text-green-500/70 mb-1 uppercase">Files</p>
-            <p className="text-xl font-bold text-green-400 text-glow">
-              {microservice.files.length}
-            </p>
-          </div>
-          <div className={`p-4 rounded border ${verification.score >= 80 ? 'bg-green-900/10 border-green-500/30' :
-              verification.score >= 60 ? 'bg-yellow-900/10 border-yellow-500/30' :
-                'bg-red-900/10 border-red-500/30'
-            }`}>
-            <p className={`text-xs mb-1 uppercase ${verification.score >= 80 ? 'text-green-500/70' :
-                verification.score >= 60 ? 'text-yellow-500/70' :
-                  'text-red-500/70'
-              }`}>Quality Score</p>
-            <p className={`text-xl font-bold text-glow ${verification.score >= 80 ? 'text-green-400' :
-                verification.score >= 60 ? 'text-yellow-400' :
-                  'text-red-400'
-              }`}>
-              {verification.score}/100
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Verification Results */}
-      <div className="box-retro p-6">
-        <h3 className="text-xl font-bold text-green-500 mb-6 flex items-center gap-2 border-b border-green-500/30 pb-2">
-          <Shield className="w-5 h-5" />
-          VERIFICATION_RESULTS
-        </h3>
-
-        {verification.issues.length > 0 && (
-          <div className="mb-8">
-            <h4 className="text-sm font-bold text-amber-500/70 mb-4 uppercase tracking-wider">Issues Detected</h4>
-            <div className="space-y-3">
-              {verification.issues.map((issue, idx) => (
-                <div
-                  key={idx}
-                  className={`border-l-2 p-4 bg-black/40 ${issue.severity === 'error'
-                      ? 'border-red-500'
-                      : issue.severity === 'warning'
-                        ? 'border-yellow-500'
-                        : 'border-blue-500'
-                    }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded border ${issue.severity === 'error'
-                            ? 'bg-red-900/20 text-red-500 border-red-500/30'
-                            : issue.severity === 'warning'
-                              ? 'bg-yellow-900/20 text-yellow-500 border-yellow-500/30'
-                              : 'bg-blue-900/20 text-blue-500 border-blue-500/30'
-                          }`}
-                      >
-                        {issue.severity.toUpperCase()}
-                      </span>
-                      <span className="text-amber-500/90 text-sm">{issue.message}</span>
-                    </div>
-                  </div>
-                  {issue.file && (
-                    <div className="text-xs text-amber-500/40 mb-2 font-mono pl-1">File: {issue.file}</div>
-                  )}
-                  {issue.suggestion && (
-                    <div className="text-xs text-green-500/70 pl-1 flex items-start gap-2">
-                      <span className="mt-0.5">💡</span> {issue.suggestion}
-                    </div>
-                  )}
-                </div>
-              ))}
+        {/* TOP HUD: System Identity & Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Identity Module */}
+          <div className="lg:col-span-8 box-retro p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+              <Cpu className="w-32 h-32 text-amber-500 animate-spin-slow" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-green-500/80 text-[10px] uppercase tracking-[0.3em]">System_Online</span>
+                <span className="text-amber-500/30 text-[10px] uppercase tracking-widest">|</span>
+                <span className="text-amber-500/50 text-[10px] uppercase tracking-widest">ID: {microservice.serviceName}</span>
+              </div>
+              <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500 text-glow mb-2">
+                {microservice.serviceName.toUpperCase()}
+              </h2>
+              <p className="text-amber-100/60 max-w-xl text-sm leading-relaxed border-l-2 border-amber-500/30 pl-3">
+                {microservice.description}
+              </p>
             </div>
           </div>
-        )}
 
-        {verification.optimizations.length > 0 && (
-          <div className="mb-8">
-            <h4 className="text-sm font-bold text-amber-500/70 mb-4 uppercase tracking-wider">Optimizations Applied</h4>
-            <div className="space-y-2">
-              {verification.optimizations.map((opt, idx) => (
-                <div
-                  key={idx}
-                  className="border border-green-500/20 bg-green-900/5 p-3 flex items-center justify-between"
-                >
-                  <p className="text-sm text-green-500/80">{opt.description}</p>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded border ${opt.impact === 'high'
-                        ? 'bg-red-900/20 text-red-400 border-red-500/30'
-                        : opt.impact === 'medium'
-                          ? 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30'
-                          : 'bg-green-900/20 text-green-400 border-green-500/30'
-                      }`}
-                  >
-                    {opt.impact.toUpperCase()}_IMPACT
+          {/* Quick Actions & Key Metrics */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="flex-1 box-retro p-4 flex items-center justify-between group hover:bg-amber-500/10 transition-colors cursor-pointer">
+              <div>
+                <p className="text-[10px] uppercase text-amber-500/50 tracking-wider">Quality Index</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold ${verification.score >= 80 ? 'text-green-400' : 'text-amber-400'} text-glow`}>
+                    {verification.score}
                   </span>
+                  <span className="text-xs text-amber-500/30">/100</span>
                 </div>
-              ))}
+              </div>
+              <Shield className={`w-8 h-8 ${verification.score >= 80 ? 'text-green-500' : 'text-amber-500'} opacity-50 group-hover:scale-110 transition-transform`} />
+            </div>
+
+            <a
+              href={downloadUrl}
+              download
+              className="flex-1 btn-retro flex items-center justify-center gap-3 text-sm group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-amber-400/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <Download className="w-4 h-4 group-hover:animate-bounce" />
+              <span>DOWNLOAD_SYSTEM_CORE</span>
+            </a>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT: Split Pane */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[600px]">
+
+          {/* LEFT: Data Cartridges (File Stack) */}
+          <div className="lg:col-span-3 flex flex-col gap-4">
+            <div className="box-retro p-4 flex-1 bg-black/40 backdrop-blur-sm border-r-4 border-r-amber-500/20">
+              <h3 className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                Data_Modules
+              </h3>
+              <RetroFileStack
+                files={allFiles}
+                selectedFile={selectedFile}
+                onSelect={setSelectedFile}
+              />
+            </div>
+
+            {/* Mini Tech Specs */}
+            <div className="box-retro p-4 space-y-3">
+              <div className="flex justify-between items-center border-b border-amber-500/10 pb-2">
+                <span className="text-[10px] text-amber-500/50 uppercase">Language</span>
+                <span className="text-xs font-bold text-blue-400">{microservice.language.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-amber-500/10 pb-2">
+                <span className="text-[10px] text-amber-500/50 uppercase">Port</span>
+                <span className="text-xs font-bold text-purple-400">{microservice.port}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-amber-500/50 uppercase">Files</span>
+                <span className="text-xs font-bold text-green-400">{microservice.files.length}</span>
+              </div>
             </div>
           </div>
-        )}
 
-        {verification.finalRecommendations.length > 0 && (
-          <div>
-            <h4 className="text-sm font-bold text-amber-500/70 mb-4 uppercase tracking-wider">System Recommendations</h4>
-            <ul className="space-y-2">
-              {verification.finalRecommendations.map((rec, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-amber-500/80">
-                  <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  {rec}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+          {/* CENTER/RIGHT: Holographic Projector */}
+          <div className="lg:col-span-9 flex flex-col gap-6">
 
-      {/* Files */}
-      <div className="box-retro p-6">
-        <h3 className="text-xl font-bold text-blue-500 mb-6 flex items-center gap-2 border-b border-blue-500/30 pb-2">
-          <FileText className="w-5 h-5" />
-          GENERATED_ARTIFACTS
-        </h3>
-        <div className="space-y-3">
-          {microservice.files.map((file, idx) => (
-            <details key={idx} className="group border border-amber-500/20 bg-black/40 open:bg-black/60 transition-colors">
-              <summary className="cursor-pointer p-4 hover:bg-amber-500/5 flex items-center justify-between select-none">
-                <div className="flex items-center gap-2 text-sm text-amber-500">
-                  <ChevronRight className="w-4 h-4 group-open:rotate-90 transition-transform" />
-                  {file.path}
+            {/* Code Viewer */}
+            <div className="flex-1 relative perspective-1000">
+              {selectedFile ? (
+                <div className="h-full transform-style-3d animate-float-delayed">
+                  <RetroHolographicDisplay
+                    title={selectedFile.path.toUpperCase()}
+                    content={selectedFile.content}
+                    language={selectedFile.path.split('.').pop() || 'text'}
+                    color={
+                      selectedFile.path.includes('Docker') ? 'blue' :
+                        selectedFile.path.endsWith('.go') ? 'blue' :
+                          selectedFile.path.endsWith('.php') ? 'purple' : 'amber'
+                    }
+                  />
                 </div>
-                <span className="text-xs text-amber-500/30 font-mono">
-                  {file.content.length} bytes
-                </span>
-              </summary>
-              <div className="border-t border-amber-500/20 p-4">
-                <p className="text-xs text-amber-500/50 mb-3 italic">// {file.description}</p>
-                <div className="relative">
-                  <div className="absolute top-0 right-0 px-2 py-1 text-[10px] text-amber-500/30 border border-amber-500/20 rounded-bl bg-black">
-                    {file.path.split('.').pop()?.toUpperCase()}
+              ) : (
+                <div className="h-full flex items-center justify-center box-retro border-dashed border-amber-500/20">
+                  <div className="text-center opacity-50">
+                    <Activity className="w-12 h-12 text-amber-500 mx-auto mb-4 animate-pulse" />
+                    <p className="text-amber-500 font-mono uppercase tracking-widest">Select a Data Module</p>
                   </div>
-                  <pre className="bg-black border border-amber-500/10 p-4 overflow-x-auto text-xs text-green-400/90 font-mono scrollbar-hide max-h-96">
-                    <code>{file.content}</code>
-                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Diagnostics Panel (Collapsible or Grid) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Verification Matrix */}
+              <div className="box-retro p-5 bg-black/60">
+                <h3 className="text-xs font-bold text-green-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Old System_Diagnostics
+                </h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-green-500/20">
+                  {verification.issues.length === 0 ? (
+                    <div className="flex items-center gap-3 text-green-400/80 p-2 border border-green-500/20 bg-green-900/10 rounded">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-xs">All systems nominal. No issues detected.</span>
+                    </div>
+                  ) : (
+                    verification.issues.map((issue, idx) => (
+                      <div key={idx} className="flex gap-3 p-2 border border-red-500/20 bg-red-900/5 rounded hover:bg-red-900/10 transition-colors">
+                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-red-400 font-bold">{issue.message}</p>
+                          {issue.suggestion && <p className="text-[10px] text-red-400/60 mt-1">Fix: {issue.suggestion}</p>}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </details>
-          ))}
 
-          {/* Dockerfile */}
-          <details className="group border border-blue-500/20 bg-black/40 open:bg-black/60 transition-colors">
-            <summary className="cursor-pointer p-4 hover:bg-blue-500/5 flex items-center justify-between select-none">
-              <div className="flex items-center gap-2 text-sm text-blue-400">
-                <ChevronRight className="w-4 h-4 group-open:rotate-90 transition-transform" />
-                Dockerfile
+              {/* Execution Protocols */}
+              <div className="box-retro p-5 bg-black/60">
+                <h3 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Terminal className="w-4 h-4" />
+                  Command_Sequence
+                </h3>
+                <div className="space-y-3 font-mono text-[10px]">
+                  <div className="group">
+                    <p className="text-blue-500/50 mb-1">BUILD_TARGET</p>
+                    <div className="bg-black border border-blue-500/20 p-2 text-blue-300/80 group-hover:text-blue-300 group-hover:border-blue-500/50 transition-all">
+                      $ {microservice.buildInstructions[0] || 'docker build .'}
+                    </div>
+                  </div>
+                  <div className="group">
+                    <p className="text-green-500/50 mb-1">INITIATE_SEQUENCE</p>
+                    <div className="bg-black border border-green-500/20 p-2 text-green-300/80 group-hover:text-green-300 group-hover:border-green-500/50 transition-all">
+                      $ {microservice.runInstructions[0] || 'docker run ...'}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs text-blue-500/30 font-mono">
-                CONTAINER_CONFIG
-              </span>
-            </summary>
-            <div className="border-t border-blue-500/20 p-4">
-              <pre className="bg-black border border-blue-500/10 p-4 overflow-x-auto text-xs text-blue-300/90 font-mono scrollbar-hide">
-                <code>{microservice.dockerfile}</code>
-              </pre>
             </div>
-          </details>
-        </div>
-      </div>
 
-      {/* Build & Run Instructions */}
-      <div className="box-retro p-6">
-        <h3 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2 border-b border-amber-500/30 pb-2">
-          <Terminal className="w-5 h-5" />
-          EXECUTION_PROTOCOLS
-        </h3>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <div>
-            <h4 className="text-sm font-bold text-amber-500/70 mb-3 uppercase">Build Sequence</h4>
-            <div className="bg-black border border-amber-500/20 p-4 font-mono text-xs space-y-2">
-              {microservice.buildInstructions.map((instruction, idx) => (
-                <div key={idx} className="flex gap-2 text-amber-500/80">
-                  <span className="text-amber-500/30 select-none">$</span>
-                  {instruction}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-bold text-amber-500/70 mb-3 uppercase">Run Sequence</h4>
-            <div className="bg-black border border-amber-500/20 p-4 font-mono text-xs space-y-2">
-              {microservice.runInstructions.map((instruction, idx) => (
-                <div key={idx} className="flex gap-2 text-amber-500/80">
-                  <span className="text-amber-500/30 select-none">$</span>
-                  {instruction}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
-        {microservice.testCommand && (
-          <div className="mt-6">
-            <h4 className="text-sm font-bold text-amber-500/70 mb-3 uppercase">Verification Test</h4>
-            <div className="bg-black border border-green-500/20 p-4 font-mono text-xs flex gap-2 text-green-400/80">
-              <span className="text-green-500/30 select-none">$</span>
-              {microservice.testCommand}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

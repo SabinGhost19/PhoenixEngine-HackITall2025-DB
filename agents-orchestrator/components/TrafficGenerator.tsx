@@ -21,12 +21,14 @@ export default function TrafficGenerator({
     const [script, setScript] = useState<string | null>(null);
     const [requestCount, setRequestCount] = useState(0);
     const [successCount, setSuccessCount] = useState(0);
-    const logsEndRef = useRef<HTMLDivElement>(null);
+    const terminalRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Auto-scroll to bottom of logs
+    // Auto-scroll to bottom of logs (internal scroll only)
     useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
     }, [logs]);
 
     // Parse logs to count requests
@@ -214,7 +216,10 @@ export default function TrafficGenerator({
             )}
 
             {/* Terminal */}
-            <div className="bg-black border border-amber-500/20 p-4 font-mono text-xs h-80 overflow-y-auto flex flex-col relative">
+            <div
+                ref={terminalRef}
+                className="bg-black border border-amber-500/20 p-4 font-mono text-xs h-80 overflow-y-auto flex flex-col relative"
+            >
                 {/* Scanlines overlay */}
                 <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] opacity-20"></div>
 
@@ -250,7 +255,6 @@ export default function TrafficGenerator({
                             {log}
                         </div>
                     ))}
-                    <div ref={logsEndRef} />
                 </div>
             </div>
 

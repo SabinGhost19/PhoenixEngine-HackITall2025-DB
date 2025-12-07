@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Rocket, CheckCircle, XCircle, Loader2, ExternalLink, Terminal, Server } from 'lucide-react';
+import { Rocket, CheckCircle, XCircle, Loader2, ExternalLink, Terminal, Server, Shield, Cpu, Activity } from 'lucide-react';
 import { EndpointAnalysis } from '../lib/schemas';
-import TrafficGenerator from './TrafficGenerator';
-import MigrationProgressPanel from './MigrationProgressPanel';
+import RetroArcadeDeployment from './retro/RetroArcadeDeployment';
 
 interface DeploymentResult {
     success: boolean;
@@ -124,7 +123,6 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
     };
 
     const isButtonDisabled = isDeploying || !migrationId || isGenerating;
-    const showTrafficGenerator = deploymentResult?.modern.success && endpointAnalysis && migrationId;
 
     return (
         <div className="w-full font-mono">
@@ -138,32 +136,35 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
                         Build and run both legacy and modern services in Docker
                     </p>
                 </div>
-                <button
-                    onClick={handleDeploy}
-                    disabled={isButtonDisabled}
-                    className={`px-6 py-3 rounded-none font-bold flex items-center gap-2 transition-all border ${isButtonDisabled
-                        ? 'border-gray-700 text-gray-700 bg-gray-900/50 cursor-not-allowed'
-                        : 'btn-retro'
-                        }`}
-                >
-                    {isDeploying ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            DEPLOYING_CONTAINERS...
-                        </>
-                    ) : isGenerating ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            GENERATING_ARTIFACTS...
-                        </>
-                    ) : (
-                        <>
-                            <Rocket className="w-5 h-5" />
-                            INITIATE_DEPLOYMENT
-                        </>
-                    )}
-                </button>
+                {!isDeploying && !deploymentResult?.success && (
+                    <button
+                        onClick={handleDeploy}
+                        disabled={isButtonDisabled}
+                        className={`px-6 py-3 rounded-none font-bold flex items-center gap-2 transition-all border ${isButtonDisabled
+                            ? 'border-gray-700 text-gray-700 bg-gray-900/50 cursor-not-allowed'
+                            : 'btn-retro'
+                            }`}
+                    >
+                        {isGenerating ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                GENERATING_ARTIFACTS...
+                            </>
+                        ) : (
+                            <>
+                                <Rocket className="w-5 h-5" />
+                                INITIATE_DEPLOYMENT
+                            </>
+                        )}
+                    </button>
+                )}
             </div>
+
+            {isDeploying && (
+                <div className="mb-8 animate-in fade-in zoom-in duration-500">
+                    <RetroArcadeDeployment />
+                </div>
+            )}
 
             {!migrationId && (
                 <div className="border border-yellow-500/30 bg-yellow-900/10 p-4 mb-6">
@@ -184,147 +185,117 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
             )}
 
             {deploymentResult && (
-                <div className="mt-8 space-y-6">
-                    {/* Overall Status */}
-                    <div className={`p-4 border-2 ${deploymentResult.success
+                <div className="mt-8 space-y-6 animate-in slide-in-from-bottom-10 duration-700">
+                    {/* Mission Report Header */}
+                    <div className={`p-6 border-2 relative overflow-hidden ${deploymentResult.success
                         ? 'bg-green-900/10 border-green-500/50'
                         : 'bg-red-900/10 border-red-500/50'
                         }`}>
-                        <div className="flex items-center gap-3">
-                            {deploymentResult.success ? (
-                                <CheckCircle className="w-6 h-6 text-green-500" />
-                            ) : (
-                                <XCircle className="w-6 h-6 text-red-500" />
-                            )}
-                            <span className={`font-bold tracking-wider ${deploymentResult.success ? 'text-green-400' : 'text-red-400'
-                                }`}>
-                                {deploymentResult.message.toUpperCase()}
-                            </span>
+                        <div className="absolute top-0 right-0 p-4 opacity-20">
+                            <Activity className="w-32 h-32" />
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-2">
+                                {deploymentResult.success ? (
+                                    <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />
+                                ) : (
+                                    <XCircle className="w-8 h-8 text-red-500 animate-pulse" />
+                                )}
+                                <h3 className={`text-2xl font-bold tracking-widest ${deploymentResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                                    MISSION_REPORT: {deploymentResult.success ? 'SUCCESS' : 'FAILURE'}
+                                </h3>
+                            </div>
+                            <p className="text-amber-500/60 font-mono text-sm max-w-2xl">
+                                {deploymentResult.message}
+                            </p>
                         </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                        {/* Legacy Service Status */}
-                        <div className="box-retro p-6 bg-black/40">
-                            <div className="flex items-center justify-between mb-4 border-b border-amber-500/20 pb-2">
-                                <h3 className="font-bold text-amber-500 flex items-center gap-2">
-                                    {deploymentResult.legacy.success ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                    ) : (
-                                        <XCircle className="w-4 h-4 text-red-500" />
-                                    )}
-                                    LEGACY_MONOLITH (PHP)
-                                </h3>
-                                {deploymentResult.legacy.success && (
-                                    <a
-                                        href={deploymentResult.legacy.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-xs uppercase tracking-wider"
-                                    >
-                                        ACCESS_ENDPOINT <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                )}
+                        {/* Legacy Service Card */}
+                        <div className="box-retro p-0 overflow-hidden bg-black/60 group hover:border-amber-500/60 transition-colors">
+                            <div className="bg-amber-900/20 p-4 border-b border-amber-500/20 flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <Server className="w-5 h-5 text-amber-500" />
+                                    <h4 className="font-bold text-amber-500">LEGACY_TARGET</h4>
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded border ${deploymentResult.legacy.success ? 'border-green-500 text-green-500' : 'border-red-500 text-red-500'}`}>
+                                    {deploymentResult.legacy.success ? 'ONLINE' : 'OFFLINE'}
+                                </span>
                             </div>
-                            <div className="text-sm space-y-2 font-mono">
-                                <p className="text-amber-500/80 flex justify-between">
-                                    <span className="text-amber-500/40">CONTAINER:</span>
-                                    <span>{deploymentResult.legacy.containerName}</span>
-                                </p>
-                                <p className="text-amber-500/80 flex justify-between">
-                                    <span className="text-amber-500/40">PORT:</span>
-                                    <span className="text-purple-400">{deploymentResult.legacy.port}</span>
-                                </p>
-                                {deploymentResult.legacy.containerId && (
-                                    <p className="text-amber-500/60 text-xs flex justify-between pt-2 border-t border-amber-500/10 mt-2">
-                                        <span className="text-amber-500/30">ID:</span>
-                                        <span>{deploymentResult.legacy.containerId.substring(0, 12)}</span>
-                                    </p>
-                                )}
-                                {deploymentResult.legacy.error && (
-                                    <p className="text-red-500 text-xs mt-2 border-t border-red-500/30 pt-2">
-                                        ❌ {deploymentResult.legacy.error}
-                                    </p>
-                                )}
+                            <div className="p-6 space-y-4">
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-xs text-gray-500 uppercase">Container ID</span>
+                                    <span className="font-mono text-amber-300">{deploymentResult.legacy.containerId?.substring(0, 12) || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-xs text-gray-500 uppercase">Port Assignment</span>
+                                    <span className="font-mono text-purple-400">{deploymentResult.legacy.port}</span>
+                                </div>
+                                <div className="pt-2">
+                                    {deploymentResult.legacy.success && (
+                                        <a
+                                            href={deploymentResult.legacy.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full btn-retro py-2 flex items-center justify-center gap-2 text-xs group-hover:bg-amber-500/10"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            ACCESS_UPLINK
+                                        </a>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Modern Service Status */}
-                        <div className="box-retro p-6 bg-black/40">
-                            <div className="flex items-center justify-between mb-4 border-b border-amber-500/20 pb-2">
-                                <h3 className="font-bold text-green-500 flex items-center gap-2">
-                                    {deploymentResult.modern.success ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500" />
-                                    ) : (
-                                        <XCircle className="w-4 h-4 text-red-500" />
-                                    )}
-                                    MODERN_SERVICE (GO)
-                                </h3>
-                                {deploymentResult.modern.success && (
-                                    <a
-                                        href={deploymentResult.modern.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-green-400 hover:text-green-300 flex items-center gap-1 text-xs uppercase tracking-wider"
-                                    >
-                                        ACCESS_ENDPOINT <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                )}
+                        {/* Modern Service Card */}
+                        <div className="box-retro p-0 overflow-hidden bg-black/60 group hover:border-green-500/60 transition-colors">
+                            <div className="bg-green-900/20 p-4 border-b border-green-500/20 flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <Cpu className="w-5 h-5 text-green-500" />
+                                    <h4 className="font-bold text-green-500">MODERN_TARGET</h4>
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded border ${deploymentResult.modern.success ? 'border-green-500 text-green-500' : 'border-red-500 text-red-500'}`}>
+                                    {deploymentResult.modern.success ? 'ONLINE' : 'OFFLINE'}
+                                </span>
                             </div>
-                            <div className="text-sm space-y-2 font-mono">
-                                <p className="text-green-500/80 flex justify-between">
-                                    <span className="text-green-500/40">CONTAINER:</span>
-                                    <span>{deploymentResult.modern.containerName}</span>
-                                </p>
-                                <p className="text-green-500/80 flex justify-between">
-                                    <span className="text-green-500/40">PORT:</span>
-                                    <span className="text-purple-400">{deploymentResult.modern.port}</span>
-                                </p>
-                                {deploymentResult.modern.containerId && (
-                                    <p className="text-green-500/60 text-xs flex justify-between pt-2 border-t border-green-500/10 mt-2">
-                                        <span className="text-green-500/30">ID:</span>
-                                        <span>{deploymentResult.modern.containerId.substring(0, 12)}</span>
-                                    </p>
-                                )}
-                                {deploymentResult.modern.error && (
-                                    <p className="text-red-500 text-xs mt-2 border-t border-red-500/30 pt-2">
-                                        ❌ {deploymentResult.modern.error}
-                                    </p>
-                                )}
+                            <div className="p-6 space-y-4">
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-xs text-gray-500 uppercase">Container ID</span>
+                                    <span className="font-mono text-green-300">{deploymentResult.modern.containerId?.substring(0, 12) || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                    <span className="text-xs text-gray-500 uppercase">Port Assignment</span>
+                                    <span className="font-mono text-purple-400">{deploymentResult.modern.port}</span>
+                                </div>
+                                <div className="pt-2">
+                                    {deploymentResult.modern.success && (
+                                        <a
+                                            href={deploymentResult.modern.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full btn-retro py-2 flex items-center justify-center gap-2 text-xs border-green-500 text-green-500 hover:bg-green-500/10"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            ACCESS_UPLINK
+                                        </a>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Docker Command Hint */}
-                    <div className="bg-black border border-amber-500/20 p-4 flex items-center gap-4">
-                        <Terminal className="w-5 h-5 text-amber-500/50" />
-                        <div className="flex-1">
-                            <p className="text-xs text-amber-500/50 mb-1 uppercase tracking-wider">
-                                System Command Hint
+                    {/* Next Steps Hint */}
+                    <div className="bg-blue-900/10 border border-blue-500/30 p-4 flex items-center gap-4 animate-pulse">
+                        <Shield className="w-6 h-6 text-blue-400" />
+                        <div>
+                            <h4 className="text-blue-400 font-bold text-sm">DEPLOYMENT_COMPLETE</h4>
+                            <p className="text-blue-300/60 text-xs">
+                                Proceed to TRAFFIC_&_MONITORING tab to initiate traffic generation and observe system behavior.
                             </p>
-                            <code className="text-green-400 font-mono text-sm">
-                                $ docker ps
-                            </code>
                         </div>
                     </div>
-
-                    {/* Traffic Generator - Only shown on success */}
-                    {showTrafficGenerator && (
-                        <div className="mt-8 pt-8 border-t border-amber-500/30">
-                            <TrafficGenerator
-                                endpointAnalysis={endpointAnalysis!}
-                                migrationId={migrationId!}
-                                serviceType="php"
-                            />
-                        </div>
-                    )}
-
-                    {/* Migration Progress Panel - Shows real-time migration status */}
-                    {deploymentResult?.modern.success && (
-                        <div className="mt-8">
-                            <MigrationProgressPanel serviceType="php" />
-                        </div>
-                    )}
                 </div>
             )}
         </div>

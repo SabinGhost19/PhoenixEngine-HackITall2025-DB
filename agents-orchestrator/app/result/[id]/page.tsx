@@ -88,7 +88,7 @@ export default function ResultPage() {
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold text-green-500 text-glow mb-1 tracking-tight flex items-center gap-2">
-                                    MIGRATION_COMPLETE <span className="text-2xl animate-bounce">🎉</span>
+                                    MIGRATION_COMPLETE <span className="text-2xl animate-bounce"></span>
                                 </h1>
                                 <div className="flex items-center gap-4 text-sm font-mono">
                                     <span className="text-amber-500/70 uppercase">{result.microservice.serviceName}</span>
