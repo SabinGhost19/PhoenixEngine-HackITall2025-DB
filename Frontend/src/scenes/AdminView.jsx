@@ -89,6 +89,20 @@ function AdminView({ bottles }) {
     }
   };
 
+  const handleAnalyze = (bottle) => {
+    if (bottle && bottle.uploadId) {
+      // Open agents-orchestrator in new tab
+      window.open(`http://localhost:3001/scan?uploadId=${bottle.uploadId}`, '_blank');
+
+      // Update bottle status (in a real app, this would sync with backend)
+      bottle.status = 'analyzing';
+    } else {
+      console.warn('No uploadId for this project');
+      // Fallback for demo/legacy bottles
+      window.open(`http://localhost:3001/upload`, '_blank');
+    }
+  };
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <Canvas
@@ -105,16 +119,16 @@ function AdminView({ bottles }) {
       >
         {/* Lighting */}
         <ambientLight intensity={0.6} />
-        <directionalLight 
-          position={[10, 20, 10]} 
-          intensity={1} 
-          castShadow 
+        <directionalLight
+          position={[10, 20, 10]}
+          intensity={1}
+          castShadow
         />
-        <directionalLight 
-          position={[-10, 10, -10]} 
-          intensity={0.3} 
+        <directionalLight
+          position={[-10, 10, -10]}
+          intensity={0.3}
         />
-        
+
         {/* Sky */}
         <Sky
           distance={450000}
@@ -122,20 +136,20 @@ function AdminView({ bottles }) {
           inclination={0.6}
           azimuth={0.25}
         />
-        
+
         {/* Ocean */}
         <Ocean />
-        
+
         {/* Main cargo ship - admin's view */}
         <CargoShip position={[0, 0, 0]} />
-        
+
         {/* Client boats in the distance */}
         <Boat position={[-15, 0, 25]} />
         <Boat position={[12, 0, 30]} />
         <Boat position={[-8, 0, 35]} />
         <Boat position={[18, 0, 28]} />
         <Boat position={[0, 0, 40]} />
-        
+
         {/* Bottles on deck (received projects) */}
         {bottles.map((bottle, index) => (
           <Bottle
@@ -174,11 +188,11 @@ function AdminView({ bottles }) {
           maxPolarAngle={Math.PI / 2.2}
           enabled={!zoomingIn}
         />
-        
+
         {/* Fog */}
         <fog attach="fog" args={['#5fcde4', 30, 120]} />
       </Canvas>
-      
+
       {/* Admin HUD */}
       <div className="admin-hud">
         <div className="hud-panel">
@@ -205,7 +219,16 @@ function AdminView({ bottles }) {
                 <div key={bottle.id} className="project-item">
                   <span className="project-number">#{index + 1}</span>
                   <span className="project-name">{bottle.projectName}</span>
-                  <span className="project-status">PENDING</span>
+                  {bottle.status === 'analyzing' ? (
+                    <span className="project-status status-active">ANALYZING...</span>
+                  ) : (
+                    <button
+                      className="analyze-btn"
+                      onClick={() => handleAnalyze(bottle)}
+                    >
+                      ANALYZE 🚀
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -285,6 +308,7 @@ function AdminView({ bottles }) {
           onViewDetails={setViewingDetails}
           onBackToList={() => setViewingDetails(false)}
           pageData={getCurrentPageData()}
+          onAnalyze={handleAnalyze}
         />
       )}
     </div>

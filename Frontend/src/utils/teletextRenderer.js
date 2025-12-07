@@ -206,7 +206,7 @@ export const SAMPLE_PAGES = {
       // Instructions at bottom
       lines.push({ text: '════════════════════════════════════════', color: 'CYAN' });
       if (selectedIndex >= 0) {
-        lines.push({ text: ' [ENTER] Details | [↑↓] Navigate', color: 'YELLOW' });
+        lines.push({ text: ' [ENTER] Details | [A] Analyze Project', color: 'YELLOW' });
       } else {
         lines.push({ text: ' [↑↓] Select | [ENTER] View Details', color: 'CYAN' });
       }
@@ -242,7 +242,7 @@ export const SAMPLE_PAGES = {
       { text: '  Storage: 20GB', color: 'WHITE' },
       { text: '' },
       { text: '════════════════════════════════════════', color: 'CYAN' },
-      { text: ' [ESC] Back to List', color: 'YELLOW' },
+      { text: ' [ESC] Back | [A] START ANALYSIS', color: 'YELLOW' },
     ];
 
     return createTeletextPage('PROJECT DETAILS', {

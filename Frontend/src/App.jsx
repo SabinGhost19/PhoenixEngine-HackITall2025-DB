@@ -12,8 +12,11 @@ function App() {
     const newBottle = {
       id: Date.now(),
       projectName: projectData.name,
+      uploadId: projectData.uploadId,
+      fileCount: projectData.fileCount,
       timestamp: new Date().toISOString(),
       position: [Math.random() * 10 - 5, 0, Math.random() * 10 - 5], // Random position on ocean
+      status: 'pending', // pending, analyzing, complete
     };
     setBottles([...bottles, newBottle]);
   };
@@ -21,7 +24,7 @@ function App() {
   return (
     <div className="app">
       <ViewToggle currentView={view} onViewChange={setView} />
-      
+
       {view === 'client' ? (
         <ClientView onSendBottle={handleSendBottle} />
       ) : (

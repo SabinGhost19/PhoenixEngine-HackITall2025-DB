@@ -139,3 +139,28 @@
 .project-list::-webkit-scrollbar-thumb:hover {
   background: var(--color-ocean-light);
 }
+
+.analyze-btn {
+  background: linear-gradient(135deg, #ff00ff 0%, #cc00cc 100%);
+  color: #fff;
+  border: 2px solid #fff;
+  padding: 5px 10px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+}
+
+.analyze-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+  background: linear-gradient(135deg, #ff33ff 0%, #ee00ee 100%);
+}
+
+.analyze-btn:active {
+  transform: scale(0.95);
+  box-shadow: 1px 1px 0px rgba(0,0,0,0.5);
+}
