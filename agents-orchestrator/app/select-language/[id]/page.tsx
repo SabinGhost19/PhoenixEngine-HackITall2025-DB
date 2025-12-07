@@ -241,23 +241,9 @@ export default function SelectLanguagePage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left: Deployed Container */}
-            <div className="flex flex-col items-center justify-center space-y-6">
-              <div className="relative">
-                <div className="absolute -inset-10 bg-green-500/10 rounded-full blur-xl animate-pulse"></div>
-                <RetroDockerContainer className="scale-125" />
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-green-500/50 mb-1">ARTIFACT_STATUS</div>
-                <div className="text-green-400 font-bold bg-green-900/20 px-4 py-1 rounded border border-green-500/30">
-                  READY_FOR_DEPLOYMENT
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Stats & Action */}
-            <div className="space-y-8">
+          <div className="flex flex-col items-center justify-center gap-12">
+            {/* Stats & Action */}
+            <div className="space-y-8 w-full max-w-md">
               <div className="space-y-4">
                 <div className="flex justify-between items-center border-b border-green-500/20 pb-2">
                   <span className="text-green-500/70">TOTAL_TIME</span>

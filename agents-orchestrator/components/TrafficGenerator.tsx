@@ -136,17 +136,17 @@ export default function TrafficGenerator({
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6 mt-8 border border-gray-200">
+        <div className="w-full font-mono">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                    <div className="p-2 bg-purple-100 rounded-lg mr-3">
-                        <Activity className="w-6 h-6 text-purple-600" />
+                    <div className="p-2 border border-purple-500/30 bg-purple-900/20 rounded mr-3">
+                        <Activity className="w-6 h-6 text-purple-500" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900">Traffic Generation Agent</h3>
-                        <p className="text-sm text-gray-500">
-                            Sends requests through Gateway (Shadowing Mode)
+                        <h3 className="text-lg font-bold text-purple-500 text-glow">TRAFFIC_GENERATION_AGENT</h3>
+                        <p className="text-xs text-purple-500/60 uppercase tracking-wider">
+                            Shadowing Mode Active
                         </p>
                     </div>
                 </div>
@@ -155,7 +155,7 @@ export default function TrafficGenerator({
                     {script && !isRunning && (
                         <button
                             onClick={handleRegenerateScript}
-                            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 text-amber-500/50 hover:text-amber-500 hover:bg-amber-900/20 rounded transition-colors"
                             title="Regenerate script"
                         >
                             <RefreshCw className="w-4 h-4" />
@@ -166,30 +166,30 @@ export default function TrafficGenerator({
                         <button
                             onClick={handleStartTraffic}
                             disabled={isGenerating}
-                            className={`flex items-center px-4 py-2 rounded-lg font-semibold text-white transition-colors ${isGenerating
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-purple-600 hover:bg-purple-700'
+                            className={`flex items-center px-4 py-2 font-bold text-sm transition-all border ${isGenerating
+                                ? 'border-gray-700 text-gray-700 bg-gray-900/50 cursor-not-allowed'
+                                : 'btn-retro border-purple-500 text-purple-500 hover:bg-purple-500/10'
                                 }`}
                         >
                             {isGenerating ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    Generating...
+                                    INITIALIZING...
                                 </>
                             ) : (
                                 <>
                                     <Zap className="w-4 h-4 mr-2" />
-                                    Generate Traffic
+                                    GENERATE_TRAFFIC
                                 </>
                             )}
                         </button>
                     ) : (
                         <button
                             onClick={handleStopTraffic}
-                            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                            className="flex items-center px-4 py-2 border border-red-500 text-red-500 hover:bg-red-900/20 font-bold text-sm transition-colors"
                         >
                             <Square className="w-4 h-4 mr-2" />
-                            Stop
+                            ABORT_SEQUENCE
                         </button>
                     )}
                 </div>
@@ -197,51 +197,54 @@ export default function TrafficGenerator({
 
             {/* Stats Bar */}
             {(isRunning || requestCount > 0) && (
-                <div className="flex gap-4 mb-4">
-                    <div className="flex-1 bg-blue-50 rounded-lg p-3">
-                        <div className="text-xs text-blue-600 font-medium">Requests Sent</div>
-                        <div className="text-2xl font-bold text-blue-700">{requestCount}</div>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-900/10 border border-blue-500/30 p-3">
+                        <div className="text-[10px] text-blue-500/70 uppercase mb-1">Requests Sent</div>
+                        <div className="text-2xl font-bold text-blue-400 text-glow">{requestCount}</div>
                     </div>
-                    <div className="flex-1 bg-green-50 rounded-lg p-3">
-                        <div className="text-xs text-green-600 font-medium">Successful</div>
-                        <div className="text-2xl font-bold text-green-700">{successCount}</div>
+                    <div className="bg-green-900/10 border border-green-500/30 p-3">
+                        <div className="text-[10px] text-green-500/70 uppercase mb-1">Successful</div>
+                        <div className="text-2xl font-bold text-green-400 text-glow">{successCount}</div>
                     </div>
-                    <div className="flex-1 bg-purple-50 rounded-lg p-3">
-                        <div className="text-xs text-purple-600 font-medium">Service</div>
-                        <div className="text-2xl font-bold text-purple-700">{serviceType.toUpperCase()}</div>
+                    <div className="bg-purple-900/10 border border-purple-500/30 p-3">
+                        <div className="text-[10px] text-purple-500/70 uppercase mb-1">Service</div>
+                        <div className="text-2xl font-bold text-purple-400 text-glow">{serviceType.toUpperCase()}</div>
                     </div>
                 </div>
             )}
 
             {/* Terminal */}
-            <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm h-80 overflow-y-auto flex flex-col">
-                <div className="flex items-center text-gray-400 mb-2 border-b border-gray-800 pb-2">
-                    <Terminal className="w-4 h-4 mr-2" />
-                    <span>Agent Terminal Output</span>
+            <div className="bg-black border border-amber-500/20 p-4 font-mono text-xs h-80 overflow-y-auto flex flex-col relative">
+                {/* Scanlines overlay */}
+                <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] opacity-20"></div>
+
+                <div className="flex items-center text-amber-500/50 mb-2 border-b border-amber-500/20 pb-2 sticky top-0 bg-black z-20">
+                    <Terminal className="w-3 h-3 mr-2" />
+                    <span className="uppercase tracking-widest">Agent_Terminal_Output</span>
                     {isRunning && (
-                        <span className="ml-auto flex items-center text-green-400 text-xs">
-                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></span>
-                            Running
+                        <span className="ml-auto flex items-center text-green-500 text-[10px]">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mr-2"></span>
+                            LIVE_FEED
                         </span>
                     )}
                 </div>
 
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 space-y-1 relative z-0">
                     {logs.length === 0 && (
-                        <div className="text-gray-500 italic">
-                            Click "Generate Traffic" to start sending requests through the Gateway...
+                        <div className="text-amber-500/30 italic mt-4 text-center">
+                            // AWAITING_TRAFFIC_INITIATION...
                         </div>
                     )}
                     {logs.map((log, index) => (
                         <div
                             key={index}
-                            className={`${log.includes('ERROR') || log.includes('❌') ? 'text-red-400' :
-                                    log.includes('SUCCESS') || log.includes('✅') || log.includes('200') || log.includes('201') ? 'text-green-400' :
-                                        log.includes('REQUEST') || log.includes('🚀') ? 'text-blue-400' :
-                                            log.includes('RESPONSE') || log.includes('📥') ? 'text-yellow-400' :
-                                                log.includes('📤') ? 'text-cyan-400' :
-                                                    log.includes('─') ? 'text-gray-600' :
-                                                        'text-gray-300'
+                            className={`${log.includes('ERROR') || log.includes('❌') ? 'text-red-500' :
+                                log.includes('SUCCESS') || log.includes('✅') || log.includes('200') || log.includes('201') ? 'text-green-500' :
+                                    log.includes('REQUEST') || log.includes('🚀') ? 'text-blue-400' :
+                                        log.includes('RESPONSE') || log.includes('📥') ? 'text-yellow-500' :
+                                            log.includes('📤') ? 'text-cyan-400' :
+                                                log.includes('─') ? 'text-amber-500/20' :
+                                                    'text-amber-500/80'
                                 }`}
                         >
                             {log}
@@ -252,12 +255,10 @@ export default function TrafficGenerator({
             </div>
 
             {/* Info Box */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800">
-                    <strong>💡 How it works:</strong> Traffic is sent to the Gateway at <code className="bg-blue-100 px-1 rounded">localhost:8082/{serviceType}/transfer</code>.
-                    The Gateway forwards each request to both Legacy and Modern services, compares responses,
-                    and the Arbiter uses this data to gradually shift traffic (canary deployment).
-                </p>
+            <div className="mt-4 p-3 border border-blue-500/30 bg-blue-900/10 text-xs text-blue-400/80 font-mono">
+                <strong className="text-blue-400 uppercase mr-2">System_Note:</strong>
+                Traffic is routed via Gateway (<code className="bg-blue-900/30 px-1 text-blue-300">localhost:8082/{serviceType}/transfer</code>).
+                Requests are shadowed to both Legacy & Modern services for real-time comparison by the Arbiter.
             </div>
         </div>
     );
