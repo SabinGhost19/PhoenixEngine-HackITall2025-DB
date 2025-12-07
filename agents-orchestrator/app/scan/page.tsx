@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import EndpointTable from '@/components/endpoint/EndpointTable';
 import { Architecture, Endpoint } from '@/lib/schemas';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 function ScanContent() {
   const router = useRouter();
@@ -13,8 +13,14 @@ function ScanContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [architecture, setArchitecture] = useState<Architecture | null>(null);
   const [files, setFiles] = useState<any[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Prevent duplicate executions
+  const analysisKey = `scan_started_${uploadId}`;
+  const resultKey = `scan_result_${uploadId}`;
 
   useEffect(() => {
     if (!uploadId) {
@@ -23,10 +29,39 @@ function ScanContent() {
       return;
     }
 
+    // Check for cached result first
+    const cachedResult = sessionStorage.getItem(resultKey);
+    if (cachedResult && retryCount === 0) {
+      try {
+        const parsed = JSON.parse(cachedResult);
+        setArchitecture(parsed.architecture);
+        setFiles(parsed.files);
+        setLoading(false);
+        return;
+      } catch {
+        // Invalid cache, continue
+      }
+    }
+
+    // Prevent duplicate execution
+    const alreadyStarted = sessionStorage.getItem(analysisKey);
+    if (alreadyStarted && retryCount === 0) {
+      console.log('Analysis already in progress, waiting...');
+      return;
+    }
+
+    sessionStorage.setItem(analysisKey, 'true');
+
     const analyzeArchitecture = async () => {
       try {
+        // Add timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min
+
         // Get uploaded files
-        const filesResponse = await fetch(`/api/upload?uploadId=${uploadId}`);
+        const filesResponse = await fetch(`/api/upload?uploadId=${uploadId}`, {
+          signal: controller.signal
+        });
         const filesData = await filesResponse.json();
 
         if (!filesData.success) {
@@ -43,7 +78,10 @@ function ScanContent() {
             uploadId,
             files: filesData.files,
           }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
@@ -52,15 +90,48 @@ function ScanContent() {
         }
 
         setArchitecture(data.data);
+        setError(null);
+        setIsNetworkError(false);
+
+        // Cache result
+        sessionStorage.setItem(resultKey, JSON.stringify({
+          architecture: data.data,
+          files: filesData.files
+        }));
+        sessionStorage.removeItem(analysisKey);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Analysis failed');
+        const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+
+        // Check for network errors
+        if (err instanceof Error && (
+          err.name === 'AbortError' ||
+          errorMessage.includes('NetworkError') ||
+          errorMessage.includes('fetch') ||
+          errorMessage.includes('network')
+        )) {
+          setIsNetworkError(true);
+          setError('Network connection issue. Please check your connection and try again.');
+        } else {
+          setIsNetworkError(false);
+          setError(errorMessage);
+        }
+        sessionStorage.removeItem(analysisKey);
       } finally {
         setLoading(false);
       }
     };
 
     analyzeArchitecture();
-  }, [uploadId]);
+  }, [uploadId, retryCount, analysisKey, resultKey]);
+
+  const handleRetry = () => {
+    sessionStorage.removeItem(analysisKey);
+    sessionStorage.removeItem(resultKey);
+    setLoading(true);
+    setError(null);
+    setIsNetworkError(false);
+    setRetryCount(prev => prev + 1);
+  };
 
   const handleSelectEndpoint = (endpoint: Endpoint) => {
     // Store necessary data in sessionStorage
@@ -78,6 +149,7 @@ function ScanContent() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-lg text-gray-600">Analyzing architecture...</p>
+          <p className="text-sm text-gray-400 mt-2">This may take a minute...</p>
         </div>
       </div>
     );
@@ -87,16 +159,32 @@ function ScanContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
-          <div className="text-red-600 mb-4">
-            <h2 className="text-xl font-bold">Error</h2>
+          <div className={`flex items-center mb-4 ${isNetworkError ? 'text-yellow-600' : 'text-red-600'}`}>
+            {isNetworkError ? (
+              <AlertTriangle className="w-8 h-8 mr-3" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                <span className="text-red-600 font-bold">!</span>
+              </div>
+            )}
+            <h2 className="text-xl font-bold">{isNetworkError ? 'Connection Issue' : 'Error'}</h2>
           </div>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/upload')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
-          >
-            Try Again
-          </button>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/upload')}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded"
+            >
+              Start Over
+            </button>
+            <button
+              onClick={handleRetry}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );

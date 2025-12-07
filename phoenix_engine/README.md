@@ -1,64 +1,169 @@
-# Phoenix Engine: The Quantum Strangler Pattern
+# Phoenix Engine - Infrastructure
 
-This project implements a distributed system for migrating legacy applications to modern microservices using the **Strangler Fig Pattern**, **Traffic Shadowing**, and **AI-driven Consensus**.
+This directory contains the core infrastructure services for the Phoenix Engine autonomous migration platform.
 
 ## Architecture
 
-The system consists of 9 Dockerized services:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      phoenix-network (Docker)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │  Zookeeper   │  │    Kafka     │  │    Redis     │              │
+│  │    :2181     │  │    :9092     │  │    :6379     │              │
+│  └──────────────┘  └──────────────┘  └──────────────┘              │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────┐      │
+│  │                    Gateway (:8082)                        │      │
+│  │  - Routes traffic to Legacy & Modern services             │      │
+│  │  - Implements shadowing mode                              │      │
+│  │  - Publishes comparisons to Kafka                         │      │
+│  └──────────────────────────────────────────────────────────┘      │
+│                              │                                      │
+│           ┌──────────────────┼──────────────────┐                  │
+│           ▼                  ▼                  ▼                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │   Legacy     │  │   Modern     │  │   Database   │              │
+│  │(phoenix-legacy)│ │(phoenix-modern)│ │    (db)     │              │
+│  │    :8081     │  │    :8080     │  │    :5432     │              │
+│  └──────────────┘  └──────────────┘  └──────────────┘              │
+│  (deployed by      (deployed by       (deployed by                  │
+│   deploy-legacy.sh) deploy-modern.sh) deploy-legacy.sh)            │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────┐      │
+│  │                   Arbiter (:5000)                         │      │
+│  │  - Consumes Kafka messages                                │      │
+│  │  - Calculates consistency scores                          │      │
+│  │  - Makes traffic shift decisions (10% increments)         │      │
+│  │  - Exposes status API for frontend                        │      │
+│  └──────────────────────────────────────────────────────────┘      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-1.  **Legacy Python Backend** (Port 8080): Simulates a legacy system with flawed VIP commission logic.
-2.  **Legacy PHP Full-Stack** (Port 8081): Simulates a legacy system with flawed rounding logic.
-3.  **Modern Python Microservice** (Port 8083): Correct implementation of the Python logic.
-4.  **Modern Go Microservice** (Port 8084): Correct implementation of the PHP logic.
-5.  **Strangler Gateway** (Port 8082): The entry point. Routes traffic, handles shadowing, and manages canary weights.
-6.  **Arbiter Agent**: Validates data consistency between Legacy and Modern systems by comparing DB states.
-7.  **Orchestrator**: Manages the migration lifecycle (monitoring scores, triggering updates).
-8.  **Dashboard** (Port 8501): Streamlit UI to visualize and control the migration.
-9.  **Traffic Generator**: Simulates real-time user traffic.
+## Quick Start
 
-## Prerequisites
+### 1. Start Infrastructure
 
-- Docker
-- Docker Compose
+```bash
+# Creates network and starts all infrastructure services
+./start-infrastructure.sh
+```
 
-## How to Run
+Or manually:
 
-1.  **Start the System:**
-    ```bash
-    cd phoenix_engine
-    docker-compose up --build
-    ```
+```bash
+# Create network first (required)
+docker network create phoenix-network
 
-2.  **Access the Dashboard:**
-    Open your browser and go to:
-    **[http://localhost:8501](http://localhost:8501)**
+# Start services
+docker-compose up -d
+```
 
-3.  **Run the Demo:**
-    *   **Phase 1 (Observation):** Watch the "Consistency Score" and "Traffic Distribution" on the dashboard. The Traffic Generator is already running.
-    *   **Phase 2 (Migration):** Select "Python Service" in the sidebar and click **"INITIATE MIGRATION SEQUENCE"**.
-    *   **Phase 3 (Transition):** Watch the "Modern Traffic Allocation" bar grow as the system automatically shifts traffic to the modern microservice (only if the Consistency Score is high).
+### 2. Start Frontend
 
-## Manual Testing (Optional)
+```bash
+cd ../agents-orchestrator
+npm run dev
+# Open http://localhost:3000
+```
 
-You can still use `curl` to test individual endpoints as described in the original documentation, but the Dashboard + Traffic Generator provides a fully automated visual experience.
+### 3. Deploy Services (via UI)
 
-## 🚀 Roadmap to Enterprise Grade
+1. Upload legacy code
+2. Scan architecture
+3. Select endpoint to migrate
+4. Generate microservice
+5. Deploy (this runs deploy-legacy.sh and deploy-modern.sh)
+6. Generate traffic
+7. Watch automatic migration progress!
 
-We are currently upgrading this prototype to a production-ready system.
+## Service Details
 
-### Phase 1: Hardening & Reliability (In Progress)
-- [ ] **Unit & Integration Tests:** Adding `pytest` and `go test` suites.
-- [ ] **Circuit Breaker:** Implementing resilience in the Gateway.
-- [ ] **Robust Config:** Moving to strict environment variable management.
+### Gateway (Go)
 
-### Phase 2: True AI Integration
-- [ ] **Real LLM:** Connecting Orchestrator to OpenAI/Anthropic for automated code patching.
-- [ ] **Vector DB:** "Archaeologist" agent for semantic code search.
+- **Port**: 8082
+- **Endpoints**:
+  - `POST /php/transfer` - Route to PHP services with shadowing
+  - `POST /python/transfer` - Route to Python services
+  - `GET /admin/status` - Get current weights
+  - `POST /admin/set-weight` - Update service weight
+  - `POST /admin/traffic-lock` - Lock/unlock traffic
 
-### Phase 3: Infrastructure Maturity
-- [ ] **Database Isolation:** Implementing CDC (Debezium) for zero-trust data syncing.
-- [ ] **Kubernetes:** Migrating from Docker Compose to K8s manifests.
+### Arbiter (Python)
 
-### Phase 4: Observability
-- [ ] **Distributed Tracing:** Jaeger integration for full request visibility.
+- **Port**: 5000
+- **Endpoints**:
+  - `GET /status` - Get current migration status
+  - `POST /reset` - Reset all counters
+  - `GET /health` - Health check
 
+### Decision Thresholds
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| THRESHOLD_PROMOTE | 99% | Minimum consistency to increase weight |
+| THRESHOLD_ROLLBACK | 95% | Below this triggers rollback to 0% |
+| MIN_SAMPLES | 10 | Minimum samples before decisions |
+| WEIGHT_INCREMENT | 10% | Weight increase per step |
+| DECISION_INTERVAL | 10s | Time between decision checks |
+
+## Dynamic Services
+
+The following services are NOT in docker-compose.yml - they are deployed dynamically:
+
+| Service | Script | Container Name | Port |
+|---------|--------|----------------|------|
+| Database | deploy-legacy.sh | phoenix-session-db | 5432 |
+| Legacy PHP | deploy-legacy.sh | phoenix-legacy | 8081 |
+| Modern Go | deploy-modern.sh | phoenix-modern-{id} | 8080 |
+
+All dynamic services connect to `phoenix-network` and use the network alias `phoenix-modern` for Gateway discovery.
+
+## Stopping Services
+
+```bash
+# Stop infrastructure
+docker-compose down
+
+# Stop dynamic services
+docker stop phoenix-legacy phoenix-session-db
+docker rm phoenix-legacy phoenix-session-db
+
+# Remove network
+docker network rm phoenix-network
+```
+
+## Logs
+
+```bash
+# Gateway logs
+docker logs -f phoenix-gateway
+
+# Arbiter logs (watch decision engine)
+docker logs -f phoenix-arbiter
+
+# Kafka logs
+docker logs -f phoenix-kafka
+```
+
+## Troubleshooting
+
+### Network not found error
+```bash
+docker network create phoenix-network
+```
+
+### Gateway can't reach Legacy/Modern
+Ensure containers have network alias:
+```bash
+docker inspect phoenix-modern-xxx | grep Aliases
+# Should show: phoenix-modern
+```
+
+### Arbiter not receiving Kafka messages
+Check Kafka is running:
+```bash
+docker exec -it phoenix-kafka kafka-topics --list --bootstrap-server localhost:29092
+```

@@ -125,6 +125,7 @@ log_info "🏃 Running container: $CONTAINER_NAME on port $PORT"
 CONTAINER_ID=$(docker run -d \
     --name "$CONTAINER_NAME" \
     --network $NETWORK_NAME \
+    --network-alias phoenix-modern \
     -p "$PORT:8080" \
     -e DATABASE_URL="$DATABASE_URL" \
     -e DB_HOST="db" \
@@ -134,7 +135,9 @@ CONTAINER_ID=$(docker run -d \
     -e DB_NAME="phoenix_db" \
     -e DB_SSLMODE="disable" \
     -e PORT=8080 \
+    -e KAFKA_BOOTSTRAP_SERVERS="kafka:29092" \
     "$IMAGE_NAME")
+
 
 if [ $? -ne 0 ]; then
     log_error "Failed to start container"

@@ -1,0 +1,135 @@
+# Phoenix Engine - Infrastructure Services
+# 
+# This docker-compose file contains ONLY infrastructure services.
+# Legacy and Modern microservices are deployed DYNAMICALLY by the platform.
+#
+# Network: phoenix-network (created by deploy-legacy.sh)
+#
+# Services deployed by platform scripts:
+# - phoenix-session-db (Postgres) - deploy-legacy.sh
+# - phoenix-legacy (PHP monolith) - deploy-legacy.sh  
+# - phoenix-modern-{id} (Generated Go microservice) - deploy-modern.sh
+#
+# To start infrastructure:
+#   docker-compose up -d
+#
+# Then use the agents-orchestrator UI to deploy legacy/modern services.
+
+networks:
+  phoenix-network:
+    external: true
+    name: phoenix-network
+
+services:
+  # ============================================
+  # Message Queue - Kafka + Zookeeper
+  # ============================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: phoenix-zookeeper
+    networks:
+      - phoenix-network
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: phoenix-kafka
+    networks:
+      - phoenix-network
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    restart: unless-stopped
+
+  # ============================================
+  # Cache - Redis
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: phoenix-redis
+    networks:
+      - phoenix-network
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # ============================================
+  # Gateway - Traffic Router with Shadowing
+  # ============================================
+  # The Gateway uses DNS names from the phoenix-network to route traffic.
+  # Legacy/Modern containers are discovered by their container names.
+  gateway:
+    build: ./gateway
+    container_name: phoenix-gateway
+    networks:
+      - phoenix-network
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      # Dynamic discovery via Docker DNS
+      # These point to containers created by deploy scripts
+      LEGACY_PHP_URL: http://phoenix-legacy:8081
+      MODERN_GO_URL: http://phoenix-modern:8080
+      # For Python migrations (if needed)
+      LEGACY_PYTHON_URL: http://phoenix-legacy-python:8080
+      MODERN_PYTHON_URL: http://phoenix-modern-python:8083
+      # Kafka for shadowing messages
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - kafka
+
+  # ============================================
+  # Arbiter - Decision Engine & Reconciliation
+  # ============================================
+  arbiter:
+    build: ./arbiter
+    container_name: phoenix-arbiter
+    networks:
+      - phoenix-network
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Connect to the session database (created by deploy-legacy.sh)
+      DATABASE_URL: postgresql://phoenix:password@db:5432/phoenix_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GATEWAY_URL: http://gateway:8082
+    depends_on:
+      - kafka
+      - redis
+
+# ============================================
+# NOTE: The following services are NOT defined here.
+# They are deployed dynamically by the platform:
+#
+# 1. Database (phoenix-session-db):
+#    - Created by: scripts/deploy-legacy.sh
+#    - Uses schema from: example-monolith/schema.sql
+#    - Network alias: db
+#
+# 2. Legacy PHP Monolith (phoenix-legacy):
+#    - Created by: scripts/deploy-legacy.sh
+#    - Port: 8081
+#    - Source: example-monolith/
+#
+# 3. Modern Go Microservice (phoenix-modern-{migrationId}):
+#    - Created by: scripts/deploy-modern.sh
+#    - Port: 8080
+#    - Source: output/{migrationId}/
+# ============================================
