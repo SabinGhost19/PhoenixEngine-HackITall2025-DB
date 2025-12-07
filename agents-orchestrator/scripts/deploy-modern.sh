@@ -95,6 +95,20 @@ if [ -n "$EXISTING_CONTAINER" ]; then
     docker rm "$EXISTING_CONTAINER" 2>/dev/null || true
 fi
 
+# Generate .env file for the application
+log_info "📝 Generating .env file..."
+cat > .env <<EOF
+DATABASE_URL=postgresql://phoenix:password@db:5432/phoenix_db?sslmode=disable
+DB_HOST=db
+DB_PORT=5432
+DB_USER=phoenix
+DB_PASSWORD=password
+DB_NAME=phoenix_db
+DB_SSLMODE=disable
+PORT=8080
+KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+EOF
+
 # Build Docker image
 log_info "🔨 Building Docker image: $IMAGE_NAME"
 log_info "📄 Dockerfile content:"
@@ -102,11 +116,38 @@ cat Dockerfile
 echo "-------------------"
 
 # Run build directly to see output
+# Run build directly to see output
 if docker build -t "$IMAGE_NAME" .; then
     log_success "Docker image built successfully"
 else
-    log_error "Failed to build Docker image"
-    exit 1
+    log_error "Failed to build generated code. Initiating FALLBACK PROTOCOL..."
+    
+    FALLBACK_DIR="$PROJECT_ROOT/fallback-service"
+    if [ -d "$FALLBACK_DIR" ]; then
+        log_info "⚠️  Switching to Fallback Service..."
+        log_info "📂 Fallback Source: $FALLBACK_DIR"
+        
+        # Copy fallback files to current directory (overwriting generated ones)
+        cp "$FALLBACK_DIR/main.go" .
+        cp "$FALLBACK_DIR/Dockerfile" .
+        
+        # Copy go.mod/sum if they exist, ensuring dependencies are correct
+        if [ -f "$FALLBACK_DIR/go.mod" ]; then
+            cp "$FALLBACK_DIR/go.mod" .
+            cp "$FALLBACK_DIR/go.sum" . 2>/dev/null || true
+        fi
+
+        log_info "🔨 Re-building Docker image with Fallback Code..."
+        if docker build -t "$IMAGE_NAME" .; then
+             log_success "✅ Fallback build successful."
+        else
+             log_error "Critical: Fallback build also failed."
+             exit 1
+        fi
+    else
+        log_error "Fallback directory not found at $FALLBACK_DIR"
+        exit 1
+    fi
 fi
 
 # 4. Run Modern App
@@ -162,6 +203,11 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
         log_warning "Health check failed. Container might still be starting or there is an issue."
         docker logs "$CONTAINER_NAME" | tail -n 20
     fi
+
+    # Restart Gateway to ensure it picks up the new container IP
+    log_info "🔄 Restarting Gateway to refresh DNS..."
+    docker restart phoenix-gateway > /dev/null
+    log_success "Gateway restarted"
 
     echo "$CONTAINER_ID"
 else

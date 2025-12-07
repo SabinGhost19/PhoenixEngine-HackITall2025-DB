@@ -74,6 +74,7 @@ export class MicroserviceGeneratorAgent {
 - Use gorilla/mux or chi for routing
 - Use sqlx for database (if needed)
 - **LOGGING**: Use standard 'log' package ONLY. No zap/zerolog.
+- **MANDATORY**: Implement a 'LoggingMiddleware' that logs "Started {Method} {Path}" and "Completed {Method} {Path} in {Duration}" for EVERY request.
 - Include proper error handling
 - Files: main.go, handlers/, models/, config/, Dockerfile
 - **CRITICAL**: Use full module path for imports (e.g. "service-name/handlers"), NEVER relative imports (e.g. "./handlers")
@@ -86,6 +87,8 @@ export class MicroserviceGeneratorAgent {
 - Use Pydantic for validation
 - Use SQLAlchemy for database (if needed)
 - **LOGGING**: Use standard 'logging' module ONLY.
+- **MANDATORY**: Add a middleware to log requests: print(f"Started {method} {path}") and print(f"Completed {method} {path} in {duration}").
+- **CRITICAL**: Ensure 'sys.stdout.reconfigure(line_buffering=True)' is called at startup.
 - Include proper async/await patterns
 - Files: main.py, routers/, models/, schemas/, config.py, requirements.txt, Dockerfile
 `,
@@ -96,6 +99,7 @@ export class MicroserviceGeneratorAgent {
 - Use Zod for validation
 - Use Prisma or TypeORM for database (if needed)
 - **LOGGING**: Use standard 'console.log/error' ONLY.
+- **MANDATORY**: Use a logging middleware (like morgan or custom) to log every request.
 - Proper async/await and error handling
 - Files: src/index.ts, src/routes/, src/models/, src/middleware/, package.json, tsconfig.json, Dockerfile
 `,
