@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MicroservicePreview from '@/components/generator/MicroservicePreview';
 import DeploymentPanel from '@/components/DeploymentPanel';
@@ -14,39 +14,40 @@ export default function GeneratePage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isNetworkError, setIsNetworkError] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [progress, setProgress] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Use a stable key based on endpoint ID to prevent duplicate executions
-  const generationKey = `generation_started_${endpointId}`;
-  const resultKey = `generation_result_${endpointId}`;
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Track if component is mounted to avoid setting state after unmount
+  const isMountedRef = useRef(true);
+  const isGeneratingRef = useRef(false);
+
+  // Stable keys
+  const resultKey = useMemo(() => `generation_result_${endpointId}`, [endpointId]);
 
   useEffect(() => {
-    // Check if we already have a result for this endpoint
+    isMountedRef.current = true;
+
+    // Check if we already have a cached result
     const cachedResultStr = sessionStorage.getItem(resultKey);
-    if (cachedResultStr && retryCount === 0) {
+    if (cachedResultStr) {
       try {
         const cachedResult = JSON.parse(cachedResultStr);
         setResult(cachedResult);
         setLoading(false);
+        console.log('✅ Using cached result');
         return;
       } catch {
-        // Invalid cache, continue with generation
+        // Invalid cache, continue
       }
     }
 
-    // Check if generation already started (prevents React Strict Mode double execution)
-    const alreadyStarted = sessionStorage.getItem(generationKey);
-    if (alreadyStarted && retryCount === 0) {
-      console.log('Generation already in progress, skipping duplicate execution');
+    // Prevent duplicate execution - if already generating, just wait
+    if (isGeneratingRef.current) {
+      console.log('⏳ Generation already in progress, waiting...');
       return;
     }
 
-    // Mark generation as started
-    sessionStorage.setItem(generationKey, 'true');
+    isGeneratingRef.current = true;
 
     const generateMicroservice = async () => {
       try {
@@ -58,7 +59,11 @@ export default function GeneratePage() {
         const endpointStr = sessionStorage.getItem('selectedEndpoint');
 
         if (!uploadId || !filesStr || !endpointAnalysisStr || !selectedLanguage || !endpointStr) {
-          throw new Error('Missing required data. Please start from the upload page.');
+          if (isMountedRef.current) {
+            setError('Missing required data. Please start from the upload page.');
+            setLoading(false);
+          }
+          return;
         }
 
         const files = JSON.parse(filesStr);
@@ -68,11 +73,11 @@ export default function GeneratePage() {
           .replace(/^-+|-+$/g, '')
           .toLowerCase();
 
-        setProgress('Starting migration workflow...');
+        if (isMountedRef.current) {
+          setProgress('Starting migration workflow...');
+        }
 
-        // Call aggregator to run full workflow with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min timeout
+        console.log('🚀 Starting API call to /api/aggregator...');
 
         const response = await fetch('/api/aggregator', {
           method: 'POST',
@@ -84,10 +89,13 @@ export default function GeneratePage() {
             targetLanguage: selectedLanguage,
             serviceName,
           }),
-          signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
+        // Check if component is still mounted before updating state
+        if (!isMountedRef.current) {
+          console.log('⚠️ Component unmounted, ignoring response');
+          return;
+        }
 
         const data = await response.json();
 
@@ -95,85 +103,72 @@ export default function GeneratePage() {
           throw new Error(data.error || 'Migration failed');
         }
 
-        setResult(data.data);
-        setProgress('Migration complete!');
-        setError(null);
-        setIsNetworkError(false);
+        console.log('✅ Migration completed successfully!');
 
-        // Cache the result to prevent duplicate generations
+        // Cache the result
         sessionStorage.setItem(resultKey, JSON.stringify(data.data));
-        sessionStorage.removeItem(generationKey);
+
+        if (isMountedRef.current) {
+          setResult(data.data);
+          setProgress('Migration complete!');
+          setError(null);
+          setLoading(false);
+        }
       } catch (err) {
+        // ONLY set error if component is still mounted AND it's not an abort error
+        if (!isMountedRef.current) {
+          console.log('⚠️ Component unmounted, ignoring error');
+          return;
+        }
+
         const errorMessage = err instanceof Error ? err.message : 'Generation failed';
 
-        // Check if it's a network/abort error - these are non-blocking
-        if (err instanceof Error && (
-          err.name === 'AbortError' ||
-          errorMessage.includes('NetworkError') ||
-          errorMessage.includes('fetch') ||
-          errorMessage.includes('network')
-        )) {
-          setIsNetworkError(true);
-          setError('Network connection interrupted. The operation may still be running in the background.');
-        } else {
-          setIsNetworkError(false);
-          setError(errorMessage);
+        // Ignore abort errors completely - they happen during React Strict Mode remounts
+        if (err instanceof Error && err.name === 'AbortError') {
+          console.log('⚠️ Fetch aborted (likely Strict Mode), ignoring');
+          return;
         }
-        // Clear generation flag on error so retry works
-        sessionStorage.removeItem(generationKey);
-      } finally {
+
+        // For network errors, check if we got a cached result in the meantime
+        if (errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+          const cachedResult = sessionStorage.getItem(resultKey);
+          if (cachedResult) {
+            try {
+              setResult(JSON.parse(cachedResult));
+              setLoading(false);
+              console.log('✅ Using cached result after network error');
+              return;
+            } catch {
+              // Continue with error
+            }
+          }
+        }
+
+        console.error('❌ Generation error:', errorMessage);
+        setError(errorMessage);
         setLoading(false);
+      } finally {
+        isGeneratingRef.current = false;
       }
     };
 
     generateMicroservice();
-  }, [endpointId, retryCount, generationKey, resultKey]);
+
+    // Cleanup - mark component as unmounted
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [endpointId, resultKey]);
 
   const handleRetry = () => {
-    // Clear cached result and generation flag
-    sessionStorage.removeItem(generationKey);
     sessionStorage.removeItem(resultKey);
-
+    isGeneratingRef.current = false;
     setLoading(true);
     setError(null);
-    setIsNetworkError(false);
-    setRetryCount(prev => prev + 1);
+    setResult(null);
+    // Re-run by modifying a state that triggers useEffect
+    window.location.reload();
   };
-
-  const handleDismissError = () => {
-    setError(null);
-    setIsNetworkError(false);
-  };
-
-
-  // Network error banner component (non-blocking warning)
-  const NetworkErrorBanner = () => (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <AlertTriangle className="w-5 h-5 text-yellow-600 mr-3" />
-          <div>
-            <p className="text-yellow-800 font-medium">Network Issue Detected</p>
-            <p className="text-yellow-600 text-sm">{error}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleDismissError}
-            className="px-3 py-1 text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded transition-colors"
-          >
-            Dismiss
-          </button>
-          <button
-            onClick={handleRetry}
-            className="px-3 py-1 text-sm bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   // Loading state
   if (loading) {
@@ -184,7 +179,7 @@ export default function GeneratePage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Generating Microservice
           </h2>
-          <p className="text-lg text-gray-600 mb-6">{progress}</p>
+          <p className="text-lg text-gray-600 mb-6">{progress || 'Initializing...'}</p>
           <div className="bg-white rounded-lg shadow-lg p-6 text-left">
             <div className="space-y-3">
               <div className="flex items-center">
@@ -210,15 +205,15 @@ export default function GeneratePage() {
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-4">
-            This may take 1-2 minutes...
+            This may take 1-2 minutes... Please don't close this page.
           </p>
         </div>
       </div>
     );
   }
 
-  // Fatal error state (not network errors)
-  if (error && !isNetworkError) {
+  // Error state
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md">
@@ -246,13 +241,10 @@ export default function GeneratePage() {
     );
   }
 
-  // Success state (with optional network error banner)
+  // Success state
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Show network error banner if needed (non-blocking) */}
-        {isNetworkError && error && <NetworkErrorBanner />}
-
         {result && (
           <>
             <div className="mb-8 text-center">
@@ -297,7 +289,6 @@ export default function GeneratePage() {
           </>
         )}
 
-        {/* Fallback if no result but also no error */}
         {!result && !loading && !error && (
           <div className="text-center">
             <p className="text-gray-600">No result available. Try refreshing or going back.</p>

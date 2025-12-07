@@ -56,8 +56,12 @@ export class TrafficGenerationAgent {
     private buildUserPrompt(input: TrafficGenerationInput): string {
         const { endpointAnalysis, gatewayUrl, serviceType, mode = 'shadowing' } = input;
 
-        // Construct the Gateway endpoint URL
-        const gatewayEndpoint = `${gatewayUrl}/${serviceType}/transfer`;
+        // Extract the actual endpoint path from analysis
+        const endpointPath = endpointAnalysis.endpointPath || '/';
+        const httpMethod = endpointAnalysis.method || 'GET';
+
+        // Construct the Gateway endpoint URL using the REAL endpoint path
+        const gatewayEndpoint = `${gatewayUrl}/${serviceType}${endpointPath}`;
 
         return `Generate a traffic generation script for the Phoenix Engine Gateway.
 
@@ -69,41 +73,32 @@ it forwards to BOTH services and compares responses for the Arbiter to analyze.
 - Gateway URL: ${gatewayUrl}
 - Service Type: ${serviceType} 
 - Full Endpoint: ${gatewayEndpoint}
-- Mode: ${mode} (include this in EVERY request payload)
+- HTTP Method: ${httpMethod}
+- Mode: ${mode} (include this in EVERY request payload for POST/PUT requests)
 
 **Original Endpoint Analysis** (use this to understand the business logic):
 ${JSON.stringify(endpointAnalysis, null, 2)}
 
 **Requirements**:
 1. The script MUST use Python with the 'requests' library.
-2. Target URL: \`${gatewayEndpoint}\` (POST requests only)
+2. Target URL: \`${gatewayEndpoint}\` (use ${httpMethod} method)
 3. Send EXACTLY 20 requests to generate enough samples for the Arbiter.
-4. EVERY request payload MUST include: \`"mode": "${mode}"\`
-5. Based on the endpoint analysis, construct valid payloads. For transfer-funds type endpoints, use:
-   - account_number: random valid account numbers (e.g., "ACC001" to "ACC010")
-   - amount: positive decimal values (e.g., 10.00 to 100.00)
-   - transaction_id: dynamically generate UUIDs if needed
-6. Vary the payload data for each request to simulate realistic traffic.
-7. Add "Content-Type: application/json" header.
+4. For POST/PUT requests: include \`"mode": "${mode}"\` in the payload.
+5. For GET requests: add \`?mode=${mode}\` as query parameter.
+6. Based on the endpoint analysis, construct valid request payloads or query params.
+7. Look at the endpoint parameters and database operations to understand what data to send.
+8. Vary the payload/params data for each request to simulate realistic traffic.
+9. Add "Content-Type: application/json" header for POST/PUT requests.
 
 **LOGGING REQUIREMENTS** (CRITICAL for UI display):
 - Initialize with: \`sys.stdout.reconfigure(line_buffering=True)\`
 - For EACH request, print logs in this EXACT format:
-  \`[YYYY-MM-DD HH:MM:SS] 🚀 REQUEST #N: POST ${gatewayEndpoint}\`
-  \`[YYYY-MM-DD HH:MM:SS] 📤 Payload: {json_payload}\`
+  \`[YYYY-MM-DD HH:MM:SS] 🚀 REQUEST #N: ${httpMethod} ${gatewayEndpoint}\`
+  \`[YYYY-MM-DD HH:MM:SS] 📤 Payload/Params: {json_data}\`
   \`[YYYY-MM-DD HH:MM:SS] 📥 RESPONSE: {status_code} | Time: {latency}ms\`
   \`[YYYY-MM-DD HH:MM:SS] 📊 Response Body: {response_snippet}\`
 - Add a 1 second delay between requests for readable real-time logs.
 - At the end, print a summary: total requests, success rate, average latency.
-
-**Example Request Payload**:
-\`\`\`json
-{
-    "mode": "shadowing",
-    "account_number": "ACC001",
-    "amount": 50.00
-}
-\`\`\`
 
 **Output**:
 Generate the complete Python script in the 'scriptContent' field.`;
@@ -111,4 +106,5 @@ Generate the complete Python script in the 'scriptContent' field.`;
 }
 
 export const trafficGenerationAgent = new TrafficGenerationAgent();
+
 

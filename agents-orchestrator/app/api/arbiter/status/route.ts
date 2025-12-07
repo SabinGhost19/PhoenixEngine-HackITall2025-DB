@@ -22,7 +22,8 @@ export async function GET() {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Arbiter status fetch error:', error);
+        // Silently handle - Arbiter may not be running
+        // Only log at debug level to reduce console noise
 
         // Return mock data when Arbiter is not available (for development)
         return NextResponse.json({

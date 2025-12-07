@@ -10,9 +10,9 @@ type Config struct {
 }
 
 var GlobalConfig = &Config{
-	PythonWeight:  0.0,
-	PhpWeight:     0.0,
-	TrafficLocked: true,
+	PythonWeight:  0.1,   // Start with 10% to enable shadowing
+	PhpWeight:     0.1,   // Start with 10% to enable shadowing
+	TrafficLocked: false, // Default to unlocked for development
 }
 
 func (c *Config) GetPythonWeight() float64 {

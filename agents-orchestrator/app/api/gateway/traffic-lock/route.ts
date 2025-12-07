@@ -8,10 +8,17 @@ export async function GET() {
             method: 'GET',
         });
         const data = await response.json();
-        return NextResponse.json(data);
+        return NextResponse.json({
+            success: true,
+            locked: data.locked,
+        });
     } catch (error) {
         console.error('Gateway traffic-lock GET error:', error);
-        return NextResponse.json({ locked: true }, { status: 200 });
+        return NextResponse.json({
+            success: true,
+            locked: true,
+            error: 'Gateway not available',
+        });
     }
 }
 
@@ -27,17 +34,20 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             return NextResponse.json(
-                { error: `Gateway returned ${response.status}` },
+                { success: false, error: `Gateway returned ${response.status}` },
                 { status: response.status }
             );
         }
 
         const data = await response.json();
-        return NextResponse.json(data);
+        return NextResponse.json({
+            success: true,
+            locked: data.locked,
+        });
     } catch (error) {
         console.error('Gateway traffic-lock POST error:', error);
         return NextResponse.json(
-            { error: 'Failed to communicate with Gateway' },
+            { success: false, error: 'Failed to communicate with Gateway' },
             { status: 503 }
         );
     }
