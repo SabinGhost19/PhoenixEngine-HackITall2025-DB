@@ -17,6 +17,12 @@ try {
     exit;
 }
 
+// Handle Health Check (GET)
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    echo json_encode(["status" => "online", "system" => "legacy_php"]);
+    exit;
+}
+
 // Get Request Body
 $input = json_decode(file_get_contents('php://input'), true);
 $account_number = $input['account_number'] ?? null;

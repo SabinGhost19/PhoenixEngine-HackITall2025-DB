@@ -63,61 +63,65 @@ export default function TrafficLockControl({ onLockChange }: TrafficLockControlP
 
     if (loading) {
         return (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex items-center justify-center gap-2 text-gray-500">
+            <div className="box-retro p-6 bg-black/40 flex items-center justify-center h-full">
+                <div className="flex items-center justify-center gap-2 text-amber-500/50">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Loading traffic control...</span>
+                    <span className="font-mono text-sm">INITIALIZING_TRAFFIC_CONTROL...</span>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Server className="w-5 h-5 text-blue-600" />
-                    Traffic Control
+        <div className="w-full font-mono">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-amber-500 flex items-center gap-2 text-glow">
+                    <Server className="w-5 h-5 text-amber-500" />
+                    TRAFFIC_CONTROL_SYSTEM
                 </h3>
                 <button
                     onClick={fetchStatus}
                     disabled={updating}
-                    className="text-gray-500 hover:text-gray-700 text-sm"
+                    className="text-amber-500/50 hover:text-amber-500 text-xs uppercase tracking-wider transition-colors"
                 >
-                    Refresh
+                    [REFRESH_STATUS]
                 </button>
             </div>
 
             {error && (
-                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800 text-sm">
+                <div className="mb-4 p-3 border border-red-500/30 bg-red-900/10 rounded-none flex items-center gap-2 text-red-400 text-sm">
                     <AlertTriangle className="w-4 h-4" />
                     {error}
                 </div>
             )}
 
             {/* Current State Display */}
-            <div className={`p-4 rounded-lg mb-4 ${isLocked
-                    ? 'bg-amber-50 border border-amber-200'
-                    : 'bg-green-50 border border-green-200'
+            <div className={`p-6 border-2 mb-6 transition-all duration-500 ${isLocked
+                ? 'bg-amber-900/10 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                : 'bg-green-900/10 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
                 }`}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                     {isLocked ? (
                         <>
-                            <Lock className="w-8 h-8 text-amber-600" />
+                            <div className="p-3 border border-amber-500/30 bg-amber-900/20 rounded-full">
+                                <Lock className="w-8 h-8 text-amber-500" />
+                            </div>
                             <div>
-                                <p className="font-semibold text-amber-800">Traffic LOCKED</p>
-                                <p className="text-sm text-amber-600">
-                                    All requests go to Legacy only. Modern service receives no traffic.
+                                <p className="font-bold text-amber-500 text-lg tracking-wider text-glow">TRAFFIC_LOCKED</p>
+                                <p className="text-xs text-amber-500/60 uppercase mt-1">
+                                    Routing: 100% Legacy | Modern: Inactive
                                 </p>
                             </div>
                         </>
                     ) : (
                         <>
-                            <Unlock className="w-8 h-8 text-green-600" />
+                            <div className="p-3 border border-green-500/30 bg-green-900/20 rounded-full">
+                                <Unlock className="w-8 h-8 text-green-500" />
+                            </div>
                             <div>
-                                <p className="font-semibold text-green-800">Traffic UNLOCKED - Shadowing Active</p>
-                                <p className="text-sm text-green-600">
-                                    Requests go to both services. Arbiter analyzes and adjusts weights.
+                                <p className="font-bold text-green-500 text-lg tracking-wider text-glow">TRAFFIC_UNLOCKED</p>
+                                <p className="text-xs text-green-500/60 uppercase mt-1">
+                                    Routing: Shadowing Active | Arbiter: Online
                                 </p>
                             </div>
                         </>
@@ -127,28 +131,32 @@ export default function TrafficLockControl({ onLockChange }: TrafficLockControlP
 
             {/* Mode Explanation */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className={`p-3 rounded-lg border ${isLocked ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'
+                <div className={`p-4 border transition-colors ${isLocked
+                    ? 'bg-amber-900/20 border-amber-500 text-amber-500'
+                    : 'bg-transparent border-gray-800 text-gray-600 opacity-50'
                     }`}>
                     <div className="flex items-center gap-2 mb-2">
-                        <Lock className="w-4 h-4 text-amber-600" />
-                        <span className="font-medium text-gray-800">Locked Mode</span>
+                        <Lock className="w-3 h-3" />
+                        <span className="font-bold text-xs uppercase tracking-wider">Locked_Mode</span>
                     </div>
-                    <ul className="text-xs text-gray-600 space-y-1">
-                        <li>• 100% traffic to Legacy</li>
-                        <li>• Modern service inactive</li>
-                        <li>• Safe, production-like</li>
+                    <ul className="text-[10px] space-y-1 font-mono opacity-80">
+                        <li>&gt; 100% traffic to Legacy</li>
+                        <li>&gt; Modern service inactive</li>
+                        <li>&gt; Safe, production-like</li>
                     </ul>
                 </div>
-                <div className={`p-3 rounded-lg border ${!isLocked ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                <div className={`p-4 border transition-colors ${!isLocked
+                    ? 'bg-green-900/20 border-green-500 text-green-500'
+                    : 'bg-transparent border-gray-800 text-gray-600 opacity-50'
                     }`}>
                     <div className="flex items-center gap-2 mb-2">
-                        <Zap className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-gray-800">Unlocked (Shadowing)</span>
+                        <Zap className="w-3 h-3" />
+                        <span className="font-bold text-xs uppercase tracking-wider">Shadow_Mode</span>
                     </div>
-                    <ul className="text-xs text-gray-600 space-y-1">
-                        <li>• Traffic to both services</li>
-                        <li>• Arbiter compares outputs</li>
-                        <li>• Auto weight adjustment</li>
+                    <ul className="text-[10px] space-y-1 font-mono opacity-80">
+                        <li>&gt; Traffic to both services</li>
+                        <li>&gt; Arbiter compares outputs</li>
+                        <li>&gt; Auto weight adjustment</li>
                     </ul>
                 </div>
             </div>
@@ -157,39 +165,39 @@ export default function TrafficLockControl({ onLockChange }: TrafficLockControlP
             <button
                 onClick={toggleLock}
                 disabled={updating || isLocked === null}
-                className={`w-full py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${updating
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : isLocked
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-amber-600 hover:bg-amber-700 text-white'
+                className={`w-full py-4 px-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${updating
+                    ? 'border-gray-700 text-gray-700 bg-gray-900/50 cursor-not-allowed'
+                    : isLocked
+                        ? 'border-green-500 text-green-500 hover:bg-green-500/10 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]'
+                        : 'border-amber-500 text-amber-500 hover:bg-amber-500/10 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                     }`}
             >
                 {updating ? (
                     <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Updating...
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        UPDATING_SYSTEM...
                     </>
                 ) : isLocked ? (
                     <>
-                        <Unlock className="w-5 h-5" />
-                        Unlock Traffic - Start Autonomous Migration
+                        <Unlock className="w-4 h-4" />
+                        UNLOCK_TRAFFIC_FLOW
                     </>
                 ) : (
                     <>
-                        <Lock className="w-5 h-5" />
-                        Lock Traffic - Stop Migration
+                        <Lock className="w-4 h-4" />
+                        LOCK_TRAFFIC_FLOW
                     </>
                 )}
             </button>
 
             {/* Info */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-                <strong>How it works:</strong>
-                <ol className="list-decimal ml-4 mt-1 space-y-1">
-                    <li><strong>Unlock</strong> - Traffic goes to both Legacy & Modern (shadowing)</li>
-                    <li><strong>Arbiter analyzes</strong> - Compares responses for consistency</li>
-                    <li><strong>Auto-promotion</strong> - If ≥99% match, weight increases by 10%</li>
-                    <li><strong>Migration complete</strong> - When weight reaches 100%</li>
+            <div className="mt-6 p-4 border border-blue-500/30 bg-blue-900/10 text-xs text-blue-400/80">
+                <strong className="text-blue-400 uppercase block mb-2">System_Logic:</strong>
+                <ol className="list-decimal ml-4 space-y-1 font-mono">
+                    <li><span className="text-blue-300">Unlock</span> - Traffic routed to Legacy & Modern</li>
+                    <li><span className="text-blue-300">Arbiter</span> - Analyzes response consistency</li>
+                    <li><span className="text-blue-300">Auto-Promote</span> - If &ge;99% match, weight +10%</li>
+                    <li><span className="text-blue-300">Complete</span> - When weight reaches 100%</li>
                 </ol>
             </div>
         </div>

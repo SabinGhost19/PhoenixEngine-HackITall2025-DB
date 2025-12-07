@@ -1,7 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Microservice, VerificationResult } from '@/lib/schemas';
-import { FileText, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { FileText, Download, CheckCircle, AlertCircle, Info, Terminal, Shield, Code, ChevronRight, Cpu, Layers, Zap, Activity, Server, Database } from 'lucide-react';
+import RetroHolographicDisplay from '../retro/RetroHolographicDisplay';
+import RetroCyberBackground from '../retro/RetroCyberBackground';
+import RetroFileStack from '../retro/RetroFileStack';
 
 interface MicroservicePreviewProps {
   microservice: Microservice;
@@ -14,235 +18,200 @@ export default function MicroservicePreview({
   verification,
   downloadUrl,
 }: MicroservicePreviewProps) {
+  // Default to Dockerfile or the first file
+  const [selectedFile, setSelectedFile] = useState<{ path: string; content: string } | null>(null);
+
+  // Initialize selected file
+  useEffect(() => {
+    if (microservice.files.length > 0) {
+      // Create a virtual file for Dockerfile to include it in the stack if needed, 
+      // or just select the first actual file. 
+      // Let's treat Dockerfile as a file in the stack for better UX.
+      const dockerFileObj = { path: 'Dockerfile', content: microservice.dockerfile, description: 'Container Configuration' };
+      // We'll combine them in the render, but for initial state:
+      setSelectedFile(dockerFileObj);
+    }
+  }, [microservice]);
+
+  // Combine Dockerfile and other files for the stack
+  const allFiles = [
+    { path: 'Dockerfile', content: microservice.dockerfile, description: 'Container Configuration' },
+    ...microservice.files
+  ];
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {microservice.serviceName}
-            </h2>
-            <p className="text-gray-600">{microservice.description}</p>
+    <div className="w-full relative font-mono overflow-hidden rounded-lg min-h-[900px] bg-black">
+      {/* Immersive Background */}
+      <RetroCyberBackground />
+
+      <div className="relative z-10 p-6 flex flex-col h-full gap-6">
+
+        {/* TOP HUD: System Identity & Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Identity Module */}
+          <div className="lg:col-span-8 box-retro p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+              <Cpu className="w-32 h-32 text-amber-500 animate-spin-slow" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-green-500/80 text-[10px] uppercase tracking-[0.3em]">System_Online</span>
+                <span className="text-amber-500/30 text-[10px] uppercase tracking-widest">|</span>
+                <span className="text-amber-500/50 text-[10px] uppercase tracking-widest">ID: {microservice.serviceName}</span>
+              </div>
+              <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-amber-500 text-glow mb-2">
+                {microservice.serviceName.toUpperCase()}
+              </h2>
+              <p className="text-amber-100/60 max-w-xl text-sm leading-relaxed border-l-2 border-amber-500/30 pl-3">
+                {microservice.description}
+              </p>
+            </div>
           </div>
-          <a
-            href={downloadUrl}
-            download
-            className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download ZIP
-          </a>
+
+          {/* Quick Actions & Key Metrics */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="flex-1 box-retro p-4 flex items-center justify-between group hover:bg-amber-500/10 transition-colors cursor-pointer">
+              <div>
+                <p className="text-[10px] uppercase text-amber-500/50 tracking-wider">Quality Index</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold ${verification.score >= 80 ? 'text-green-400' : 'text-amber-400'} text-glow`}>
+                    {verification.score}
+                  </span>
+                  <span className="text-xs text-amber-500/30">/100</span>
+                </div>
+              </div>
+              <Shield className={`w-8 h-8 ${verification.score >= 80 ? 'text-green-500' : 'text-amber-500'} opacity-50 group-hover:scale-110 transition-transform`} />
+            </div>
+
+            <a
+              href={downloadUrl}
+              download
+              className="flex-1 btn-retro flex items-center justify-center gap-3 text-sm group relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-amber-400/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <Download className="w-4 h-4 group-hover:animate-bounce" />
+              <span>DOWNLOAD_SYSTEM_CORE</span>
+            </a>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Language</p>
-            <p className="text-lg font-bold text-blue-600">
-              {microservice.language.toUpperCase()}
-            </p>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Port</p>
-            <p className="text-lg font-bold text-purple-600">
-              {microservice.port}
-            </p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">Files</p>
-            <p className="text-lg font-bold text-green-600">
-              {microservice.files.length}
-            </p>
-          </div>
-          <div className={`rounded-lg p-4 ${
-            verification.score >= 80 ? 'bg-green-50' :
-            verification.score >= 60 ? 'bg-yellow-50' :
-            'bg-red-50'
-          }`}>
-            <p className="text-sm text-gray-600 mb-1">Quality Score</p>
-            <p className={`text-lg font-bold ${
-              verification.score >= 80 ? 'text-green-600' :
-              verification.score >= 60 ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-              {verification.score}/100
-            </p>
-          </div>
-        </div>
-      </div>
+        {/* MAIN CONTENT: Split Pane */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-[600px]">
 
-      {/* Verification Results */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-          <CheckCircle className="w-6 h-6 text-green-600 mr-2" />
-          Verification Results
-        </h3>
+          {/* LEFT: Data Cartridges (File Stack) */}
+          <div className="lg:col-span-3 flex flex-col gap-4">
+            <div className="box-retro p-4 flex-1 bg-black/40 backdrop-blur-sm border-r-4 border-r-amber-500/20">
+              <h3 className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                Data_Modules
+              </h3>
+              <RetroFileStack
+                files={allFiles}
+                selectedFile={selectedFile}
+                onSelect={setSelectedFile}
+              />
+            </div>
 
-        {verification.issues.length > 0 && (
-          <div className="mb-6">
-            <h4 className="font-semibold text-gray-700 mb-3">Issues Found</h4>
-            <div className="space-y-2">
-              {verification.issues.map((issue, idx) => (
-                <div
-                  key={idx}
-                  className={`border-l-4 p-3 rounded ${
-                    issue.severity === 'error'
-                      ? 'border-red-500 bg-red-50'
-                      : issue.severity === 'warning'
-                      ? 'border-yellow-500 bg-yellow-50'
-                      : 'border-blue-500 bg-blue-50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-semibold rounded mr-2 ${
-                          issue.severity === 'error'
-                            ? 'bg-red-200 text-red-800'
-                            : issue.severity === 'warning'
-                            ? 'bg-yellow-200 text-yellow-800'
-                            : 'bg-blue-200 text-blue-800'
-                        }`}
-                      >
-                        {issue.severity.toUpperCase()}
-                      </span>
-                      <span className="text-sm text-gray-700">{issue.message}</span>
+            {/* Mini Tech Specs */}
+            <div className="box-retro p-4 space-y-3">
+              <div className="flex justify-between items-center border-b border-amber-500/10 pb-2">
+                <span className="text-[10px] text-amber-500/50 uppercase">Language</span>
+                <span className="text-xs font-bold text-blue-400">{microservice.language.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-amber-500/10 pb-2">
+                <span className="text-[10px] text-amber-500/50 uppercase">Port</span>
+                <span className="text-xs font-bold text-purple-400">{microservice.port}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-amber-500/50 uppercase">Files</span>
+                <span className="text-xs font-bold text-green-400">{microservice.files.length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* CENTER/RIGHT: Holographic Projector */}
+          <div className="lg:col-span-9 flex flex-col gap-6">
+
+            {/* Code Viewer */}
+            <div className="flex-1 relative perspective-1000">
+              {selectedFile ? (
+                <div className="h-full transform-style-3d animate-float-delayed">
+                  <RetroHolographicDisplay
+                    title={selectedFile.path.toUpperCase()}
+                    content={selectedFile.content}
+                    language={selectedFile.path.split('.').pop() || 'text'}
+                    color={
+                      selectedFile.path.includes('Docker') ? 'blue' :
+                        selectedFile.path.endsWith('.go') ? 'blue' :
+                          selectedFile.path.endsWith('.php') ? 'purple' : 'amber'
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center box-retro border-dashed border-amber-500/20">
+                  <div className="text-center opacity-50">
+                    <Activity className="w-12 h-12 text-amber-500 mx-auto mb-4 animate-pulse" />
+                    <p className="text-amber-500 font-mono uppercase tracking-widest">Select a Data Module</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Diagnostics Panel (Collapsible or Grid) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Verification Matrix */}
+              <div className="box-retro p-5 bg-black/60">
+                <h3 className="text-xs font-bold text-green-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Old System_Diagnostics
+                </h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-green-500/20">
+                  {verification.issues.length === 0 ? (
+                    <div className="flex items-center gap-3 text-green-400/80 p-2 border border-green-500/20 bg-green-900/10 rounded">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-xs">All systems nominal. No issues detected.</span>
+                    </div>
+                  ) : (
+                    verification.issues.map((issue, idx) => (
+                      <div key={idx} className="flex gap-3 p-2 border border-red-500/20 bg-red-900/5 rounded hover:bg-red-900/10 transition-colors">
+                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-red-400 font-bold">{issue.message}</p>
+                          {issue.suggestion && <p className="text-[10px] text-red-400/60 mt-1">Fix: {issue.suggestion}</p>}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Execution Protocols */}
+              <div className="box-retro p-5 bg-black/60">
+                <h3 className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Terminal className="w-4 h-4" />
+                  Command_Sequence
+                </h3>
+                <div className="space-y-3 font-mono text-[10px]">
+                  <div className="group">
+                    <p className="text-blue-500/50 mb-1">BUILD_TARGET</p>
+                    <div className="bg-black border border-blue-500/20 p-2 text-blue-300/80 group-hover:text-blue-300 group-hover:border-blue-500/50 transition-all">
+                      $ {microservice.buildInstructions[0] || 'docker build .'}
                     </div>
                   </div>
-                  {issue.file && (
-                    <p className="text-xs text-gray-500 mt-1">File: {issue.file}</p>
-                  )}
-                  {issue.suggestion && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      💡 {issue.suggestion}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {verification.optimizations.length > 0 && (
-          <div className="mb-6">
-            <h4 className="font-semibold text-gray-700 mb-3">Suggested Optimizations</h4>
-            <div className="space-y-2">
-              {verification.optimizations.map((opt, idx) => (
-                <div
-                  key={idx}
-                  className="border border-gray-200 rounded p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-700">{opt.description}</p>
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded ${
-                        opt.impact === 'high'
-                          ? 'bg-red-100 text-red-800'
-                          : opt.impact === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {opt.impact.toUpperCase()} IMPACT
-                    </span>
+                  <div className="group">
+                    <p className="text-green-500/50 mb-1">INITIATE_SEQUENCE</p>
+                    <div className="bg-black border border-green-500/20 p-2 text-green-300/80 group-hover:text-green-300 group-hover:border-green-500/50 transition-all">
+                      $ {microservice.runInstructions[0] || 'docker run ...'}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {verification.finalRecommendations.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-gray-700 mb-3">Final Recommendations</h4>
-            <ul className="space-y-2">
-              {verification.finalRecommendations.map((rec, idx) => (
-                <li key={idx} className="flex items-start">
-                  <Info className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700">{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Files */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-          <FileText className="w-6 h-6 text-blue-600 mr-2" />
-          Generated Files
-        </h3>
-        <div className="space-y-3">
-          {microservice.files.map((file, idx) => (
-            <details key={idx} className="border border-gray-200 rounded-lg">
-              <summary className="cursor-pointer p-4 hover:bg-gray-50 font-mono text-sm">
-                {file.path}
-                <span className="text-xs text-gray-500 ml-2">
-                  ({file.content.length} chars)
-                </span>
-              </summary>
-              <div className="border-t border-gray-200 p-4 bg-gray-50">
-                <p className="text-sm text-gray-600 mb-2">{file.description}</p>
-                <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-xs">
-                  <code>{file.content}</code>
-                </pre>
               </div>
-            </details>
-          ))}
-
-          {/* Dockerfile */}
-          <details className="border border-gray-200 rounded-lg">
-            <summary className="cursor-pointer p-4 hover:bg-gray-50 font-mono text-sm">
-              Dockerfile
-            </summary>
-            <div className="border-t border-gray-200 p-4 bg-gray-50">
-              <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-xs">
-                <code>{microservice.dockerfile}</code>
-              </pre>
             </div>
-          </details>
-        </div>
-      </div>
 
-      {/* Build & Run Instructions */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">
-          Build & Run Instructions
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-semibold text-gray-700 mb-2">Build</h4>
-            <ol className="list-decimal list-inside space-y-1">
-              {microservice.buildInstructions.map((instruction, idx) => (
-                <li key={idx} className="text-sm text-gray-600">
-                  {instruction}
-                </li>
-              ))}
-            </ol>
           </div>
-
-          <div>
-            <h4 className="font-semibold text-gray-700 mb-2">Run</h4>
-            <ol className="list-decimal list-inside space-y-1">
-              {microservice.runInstructions.map((instruction, idx) => (
-                <li key={idx} className="text-sm text-gray-600">
-                  {instruction}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          {microservice.testCommand && (
-            <div>
-              <h4 className="font-semibold text-gray-700 mb-2">Test</h4>
-              <pre className="bg-gray-100 p-3 rounded text-sm">
-                <code>{microservice.testCommand}</code>
-              </pre>
-            </div>
-          )}
         </div>
+
       </div>
     </div>
   );

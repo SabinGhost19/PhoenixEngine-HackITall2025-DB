@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import {
     RefreshCw, Play, Pause, Server, Activity, Database,
     MessageSquare, CheckCircle, XCircle, AlertTriangle,
-    TrendingUp, Clock, Zap
+    TrendingUp, Clock, Zap, Grid, Layout, Terminal, Shield
 } from 'lucide-react';
+import TrafficFlowVisualizer from './retro/TrafficFlowVisualizer';
 
 interface ContainerData {
     status: string;
@@ -29,6 +30,7 @@ export default function SystemMonitorDashboard() {
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeLogTab, setActiveLogTab] = useState<'gateway' | 'arbiter' | 'legacy' | 'modern'>('gateway');
+    const [viewMode, setViewMode] = useState<'tabbed' | 'grid'>('grid'); // Default to Grid
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,10 +50,10 @@ export default function SystemMonitorDashboard() {
     }, [autoRefresh]);
 
     useEffect(() => {
-        if (autoRefresh) {
+        if (autoRefresh && viewMode === 'tabbed') {
             logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [data, autoRefresh]);
+    }, [data, autoRefresh, viewMode]);
 
     const fetchData = async () => {
         try {
@@ -74,46 +76,39 @@ export default function SystemMonitorDashboard() {
     const getStatusBadge = (status: string) => {
         if (status === 'running') {
             return (
-                <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    Running
+                <span className="flex items-center gap-1 text-green-400 font-bold text-[10px] uppercase tracking-wider">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_lime]" />
+                    ONLINE
                 </span>
             );
         } else if (status === 'stopped') {
             return (
-                <span className="flex items-center gap-1 text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                    Stopped
+                <span className="flex items-center gap-1 text-red-500 font-bold text-[10px] uppercase tracking-wider">
+                    <span className="w-2 h-2 bg-red-500 rounded-full" />
+                    OFFLINE
                 </span>
             );
         }
         return (
-            <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full text-xs font-medium">
-                <span className="w-2 h-2 bg-gray-400 rounded-full" />
-                Not Found
+            <span className="flex items-center gap-1 text-gray-500 font-bold text-[10px] uppercase tracking-wider">
+                <span className="w-2 h-2 bg-gray-500 rounded-full" />
+                UNKNOWN
             </span>
         );
     };
 
     const formatLog = (log: string, idx: number) => {
-        // Colorize based on content
-        let className = 'text-gray-300';
-        if (log.includes('ERROR') || log.includes('❌') || log.includes('FAILED')) {
-            className = 'text-red-400';
-        } else if (log.includes('✅') || log.includes('SUCCESS') || log.includes('MATCH')) {
-            className = 'text-green-400';
-        } else if (log.includes('⚠️') || log.includes('WARNING') || log.includes('MISMATCH')) {
-            className = 'text-yellow-400';
-        } else if (log.includes('📊') || log.includes('🔍') || log.includes('Decision')) {
-            className = 'text-blue-400';
-        } else if (log.includes('🚀') || log.includes('REQUEST')) {
-            className = 'text-cyan-400';
-        } else if (log.includes('📈') || log.includes('promote') || log.includes('weight')) {
-            className = 'text-purple-400';
-        }
+        let className = 'text-gray-400';
+        if (log.includes('ERROR') || log.includes('❌') || log.includes('FAILED')) className = 'text-red-400 font-bold';
+        else if (log.includes('✅') || log.includes('SUCCESS') || log.includes('MATCH')) className = 'text-green-400';
+        else if (log.includes('⚠️') || log.includes('WARNING') || log.includes('MISMATCH')) className = 'text-yellow-400';
+        else if (log.includes('📊') || log.includes('🔍') || log.includes('Decision')) className = 'text-blue-400';
+        else if (log.includes('🚀') || log.includes('REQUEST')) className = 'text-cyan-400';
+        else if (log.includes('📈') || log.includes('promote') || log.includes('weight')) className = 'text-purple-400';
 
         return (
-            <div key={idx} className={`${className} font-mono text-xs py-0.5 border-b border-gray-800`}>
+            <div key={idx} className={`${className} font-mono text-[10px] py-0.5 border-b border-white/5 hover:bg-white/5 whitespace-pre-wrap break-all`}>
+                <span className="opacity-30 mr-2">{idx.toString().padStart(3, '0')}</span>
                 {log}
             </div>
         );
@@ -121,205 +116,213 @@ export default function SystemMonitorDashboard() {
 
     if (loading) {
         return (
-            <div className="bg-gray-900 rounded-lg p-8 text-center">
-                <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-2" />
-                <p className="text-gray-400">Loading system data...</p>
+            <div className="box-retro p-12 text-center bg-black/80 backdrop-blur-md">
+                <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                <p className="text-blue-400 font-mono text-lg animate-pulse tracking-widest">INITIALIZING_COMMAND_CENTER...</p>
             </div>
         );
     }
 
     const arbiterMetrics = data?.arbiter?.metrics?.data || data?.arbiter?.metrics;
-    const gatewayMetrics = data?.gateway?.metrics;
 
     return (
-        <div className="space-y-6">
-            {/* Header with Controls */}
-            <div className="bg-white rounded-lg shadow-lg p-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Activity className="w-6 h-6 text-blue-600" />
-                        <h2 className="text-lg font-bold text-gray-900">System Monitor</h2>
-                        {autoRefresh && (
-                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full animate-pulse">
-                                ● Live
-                            </span>
-                        )}
+        <div className="w-full font-mono relative min-h-screen bg-[#050505]">
+            {/* Background "Granular Graph" Effect */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-blue-900/10 to-transparent" />
+                {/* SVG Graph Pattern */}
+                <svg className="absolute bottom-0 left-0 w-full h-48 opacity-20" preserveAspectRatio="none">
+                    <path d="M0,100 Q200,50 400,100 T800,100 T1200,50 V200 H0 Z" fill="url(#grad1)" className="animate-pulse" style={{ animationDuration: '5s' }} />
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: '#8b5cf6', stopOpacity: 1 }} />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+
+            <div className="relative z-10 p-6 max-w-[1600px] mx-auto">
+
+                {/* Header / Command Bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-white/10">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30">
+                            <Activity className="w-8 h-8 text-blue-400" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-white tracking-tight">TRAFFIC_&_MONITORING</h1>
+                            <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                SYSTEM_OPERATIONAL
+                                <span className="mx-2">|</span>
+                                UPTIME: 99.9%
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-3 mt-4 md:mt-0">
+                        <button
+                            onClick={() => setViewMode(viewMode === 'tabbed' ? 'grid' : 'tabbed')}
+                            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider border rounded transition-all ${viewMode === 'grid'
+                                ? 'bg-blue-600 text-white border-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]'
+                                : 'bg-transparent text-gray-400 border-gray-700 hover:border-gray-500'
+                                }`}
+                        >
+                            <Grid className="w-4 h-4" />
+                            GRID_VIEW
+                        </button>
                         <button
                             onClick={() => setAutoRefresh(!autoRefresh)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm ${autoRefresh
-                                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider border rounded transition-all ${autoRefresh
+                                ? 'bg-red-900/20 text-red-400 border-red-500/50 hover:bg-red-900/40'
+                                : 'bg-green-900/20 text-green-400 border-green-500/50 hover:bg-green-900/40'
                                 }`}
                         >
                             {autoRefresh ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                            {autoRefresh ? 'Stop' : 'Start'} Live
+                            {autoRefresh ? 'PAUSE_FEED' : 'RESUME_FEED'}
                         </button>
                         <button
                             onClick={fetchData}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            className="p-2 text-gray-400 hover:text-white border border-gray-700 rounded hover:bg-white/5 transition-all"
                         >
                             <RefreshCw className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
-            </div>
 
-            {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2 text-red-700">
-                    <AlertTriangle className="w-5 h-5" />
-                    {error}
-                </div>
-            )}
-
-            {/* Services Status Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {[
-                    { name: 'Gateway', key: 'gateway', icon: Server, port: '8082' },
-                    { name: 'Arbiter', key: 'arbiter', icon: Activity, port: '5000' },
-                    { name: 'Kafka', key: 'kafka', icon: MessageSquare, port: '9092' },
-                    { name: 'Redis', key: 'redis', icon: Database, port: '6379' },
-                    { name: 'Legacy PHP', key: 'legacy', icon: Server, port: '8080' },
-                    { name: 'Modern Go', key: 'modern', icon: Zap, port: '8081' },
-                ].map(service => (
-                    <div key={service.key} className="bg-white rounded-lg shadow p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <service.icon className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm font-medium text-gray-700">{service.name}</span>
-                        </div>
-                        {getStatusBadge((data as any)?.[service.key]?.status || 'not_found')}
-                        <p className="text-xs text-gray-400 mt-1">:{service.port}</p>
+                {/* Top Section: Visualization & Metrics */}
+                <div className="grid lg:grid-cols-3 gap-6 mb-8">
+                    {/* 3D Traffic Visualizer (Takes up 2 cols) */}
+                    <div className="lg:col-span-2">
+                        <TrafficFlowVisualizer metrics={{
+                            php_weight: 1 - (arbiterMetrics?.php_weight || 1), // Invert for modern weight
+                            modern_weight: arbiterMetrics?.php_weight || 0,
+                            total_requests: arbiterMetrics?.total_transactions || 0,
+                            consistency: arbiterMetrics?.consistency_score || 100
+                        }} />
                     </div>
-                ))}
-            </div>
 
-            {/* Arbiter Metrics */}
-            {arbiterMetrics && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
-                        Migration Progress (Arbiter)
-                    </h3>
+                    {/* Key Metrics Cards */}
+                    <div className="space-y-4">
+                        {/* Consistency Score Card */}
+                        <div className="bg-black/40 border border-blue-500/30 rounded-lg p-5 relative overflow-hidden group hover:border-blue-500/60 transition-colors">
+                            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Shield className="w-16 h-16 text-blue-500" />
+                            </div>
+                            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Consistency Score</h3>
+                            <div className="text-4xl font-bold text-white mb-2">
+                                {(arbiterMetrics?.consistency_score || 0).toFixed(1)}<span className="text-lg text-gray-500">%</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500" style={{ width: `${arbiterMetrics?.consistency_score || 0}%` }} />
+                            </div>
+                        </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-blue-50 rounded-lg p-4">
-                            <div className="text-3xl font-bold text-blue-600">
-                                {(arbiterMetrics.consistency_score || 0).toFixed(1)}%
+                        {/* Traffic Split Card */}
+                        <div className="bg-black/40 border border-green-500/30 rounded-lg p-5 relative overflow-hidden group hover:border-green-500/60 transition-colors">
+                            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Zap className="w-16 h-16 text-green-500" />
                             </div>
-                            <div className="text-sm text-blue-700">Consistency Score</div>
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-4">
-                            <div className="text-3xl font-bold text-green-600">
-                                {((arbiterMetrics.php_weight || 0) * 100).toFixed(0)}%
-                            </div>
-                            <div className="text-sm text-green-700">Modern Weight</div>
-                        </div>
-                        <div className="bg-purple-50 rounded-lg p-4">
-                            <div className="text-3xl font-bold text-purple-600">
-                                {arbiterMetrics.matched_transactions || 0}/{arbiterMetrics.total_transactions || 0}
-                            </div>
-                            <div className="text-sm text-purple-700">Matched/Total</div>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="text-xl font-bold text-gray-700 capitalize">
-                                {arbiterMetrics.migration_status || 'pending'}
-                            </div>
-                            <div className="text-sm text-gray-600">Status</div>
-                            {arbiterMetrics.last_decision && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                    Last: {arbiterMetrics.last_decision}
+                            <h3 className="text-xs font-bold text-green-400 uppercase tracking-widest mb-1">Traffic Distribution</h3>
+                            <div className="flex items-end gap-2 mb-2">
+                                <div className="text-4xl font-bold text-white">
+                                    {((arbiterMetrics?.php_weight || 0) * 100).toFixed(0)}<span className="text-lg text-gray-500">%</span>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                        <div className="flex justify-between text-sm text-gray-600 mb-1">
-                            <span>Migration Progress</span>
-                            <span>{((arbiterMetrics.php_weight || 0) * 100).toFixed(0)}% → Modern</span>
-                        </div>
-                        <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-                                style={{ width: `${(arbiterMetrics.php_weight || 0) * 100}%` }}
-                            />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>Legacy (PHP)</span>
-                            <span>Modern (Go)</span>
-                        </div>
-                    </div>
-
-                    {/* Decision Thresholds */}
-                    <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span>Promote: ≥99% consistency</span>
+                                <span className="text-xs text-gray-400 mb-1">MODERN</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <XCircle className="w-4 h-4 text-red-500" />
-                                <span>Rollback: &lt;95% consistency</span>
+                            <div className="flex gap-1 h-1 w-full">
+                                <div className="bg-amber-500" style={{ width: `${(1 - (arbiterMetrics?.php_weight || 0)) * 100}%` }} />
+                                <div className="bg-green-500" style={{ width: `${(arbiterMetrics?.php_weight || 0) * 100}%` }} />
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4 text-blue-500" />
-                                <span>Check every 10s</span>
+                            <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                                <span>LEGACY</span>
+                                <span>MODERN</span>
+                            </div>
+                        </div>
+
+                        {/* Status Card */}
+                        <div className="bg-black/40 border border-amber-500/30 rounded-lg p-5 relative overflow-hidden">
+                            <h3 className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-2">System Status</h3>
+                            <div className="flex items-center gap-2 text-sm text-white font-mono">
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                {arbiterMetrics?.migration_status?.toUpperCase() || 'IDLE'}
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-500 border-t border-white/5 pt-2">
+                                LAST DECISION: {arbiterMetrics?.last_decision || 'NONE'}
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
 
-            {/* Real-time Logs */}
-            <div className="bg-gray-900 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
-                    <div className="flex items-center gap-2">
-                        <Server className="w-5 h-5 text-blue-400" />
-                        <span className="text-white font-semibold">Container Logs (Real-time)</span>
+                {/* Main Content: Terminal Grid */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Terminal className="w-5 h-5 text-gray-400" />
+                        <h2 className="text-lg font-bold text-white tracking-tight">LIVE_TERMINAL_FEEDS</h2>
                     </div>
-                    <div className="flex gap-1">
-                        {(['gateway', 'arbiter', 'legacy', 'modern'] as const).map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveLogTab(tab)}
-                                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${activeLogTab === tab
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                                    }`}
-                            >
-                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
 
-                <div className="h-80 overflow-y-auto p-4 bg-gray-950">
-                    {data && (data as any)[activeLogTab]?.logs?.length > 0 ? (
-                        <div>
-                            {(data as any)[activeLogTab].logs.map(formatLog)}
-                            <div ref={logsEndRef} />
+                    {viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {(['gateway', 'arbiter', 'legacy', 'modern'] as const).map(service => (
+                                <div key={service} className="bg-black border border-gray-800 rounded-lg overflow-hidden flex flex-col h-[300px] shadow-lg hover:border-gray-600 transition-colors">
+                                    {/* Terminal Header */}
+                                    <div className="bg-gray-900/50 px-4 py-2 border-b border-gray-800 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${(data as any)?.[service]?.status === 'running' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                            <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{service}</span>
+                                        </div>
+                                        <span className="text-[10px] text-gray-600 font-mono">
+                                            {(data as any)?.[service]?.logs?.length || 0} LINES
+                                        </span>
+                                    </div>
+
+                                    {/* Terminal Body */}
+                                    <div className="flex-1 overflow-y-auto p-3 font-mono text-[10px] bg-black/90 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                                        {data && (data as any)[service]?.logs?.length > 0 ? (
+                                            (data as any)[service].logs.map(formatLog)
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full text-gray-700">
+                                                <span className="uppercase tracking-widest text-[10px]">AWAITING_DATA...</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-gray-500">
-                            <div className="text-center">
-                                <Server className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                <p>No logs available for {activeLogTab}</p>
-                                <p className="text-xs mt-1">Container may not be running</p>
+                        // Tabbed View (Legacy)
+                        <div className="bg-black border border-gray-800 rounded-lg overflow-hidden">
+                            <div className="flex border-b border-gray-800">
+                                {(['gateway', 'arbiter', 'legacy', 'modern'] as const).map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveLogTab(tab)}
+                                        className={`px-6 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeLogTab === tab
+                                            ? 'bg-gray-900 text-white border-b-2 border-blue-500'
+                                            : 'text-gray-500 hover:text-gray-300 hover:bg-gray-900/50'
+                                            }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="h-[500px] overflow-y-auto p-4 font-mono text-xs bg-black/90">
+                                {data && (data as any)[activeLogTab]?.logs?.length > 0 ? (
+                                    <div>
+                                        {(data as any)[activeLogTab].logs.map(formatLog)}
+                                        <div ref={logsEndRef} />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-700">
+                                        <span className="uppercase tracking-widest">NO_LOGS_AVAILABLE</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
 
-                <div className="bg-gray-800 px-4 py-2 border-t border-gray-700 flex justify-between text-xs text-gray-400">
-                    <span>
-                        {(data as any)?.[activeLogTab]?.logs?.length || 0} log lines
-                    </span>
-                    <span>
-                        Last updated: {data?.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Never'}
-                    </span>
-                </div>
             </div>
         </div>
     );
