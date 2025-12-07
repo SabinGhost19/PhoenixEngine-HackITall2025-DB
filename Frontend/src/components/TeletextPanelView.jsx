@@ -12,7 +12,8 @@ function TeletextPanelView({
   viewingDetails,
   onViewDetails,
   onBackToList,
-  pageData
+  pageData,
+  onAnalyze
 }) {
   const canvasRef = useRef();
 
@@ -60,12 +61,21 @@ function TeletextPanelView({
         } else {
           onExit();
         }
+      } else if (e.key === 'a' || e.key === 'A') {
+        // Trigger analysis when viewing details or selected in list
+        if (viewingDetails && selectedProjectIndex >= 0) {
+          e.preventDefault();
+          onAnalyze(bottles[selectedProjectIndex]);
+        } else if (currentPage === 0 && selectedProjectIndex >= 0) {
+          e.preventDefault();
+          onAnalyze(bottles[selectedProjectIndex]);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, selectedProjectIndex, viewingDetails, bottles.length, onPageChange, onSelectProject, onViewDetails, onBackToList, onExit]);
+  }, [currentPage, selectedProjectIndex, viewingDetails, bottles, onPageChange, onSelectProject, onViewDetails, onBackToList, onExit, onAnalyze]);
 
   return (
     <div className="teletext-panel-view">

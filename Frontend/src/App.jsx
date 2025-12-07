@@ -15,8 +15,11 @@ function App() {
     const newBottle = {
       id: Date.now(),
       projectName: projectData.name,
+      uploadId: projectData.uploadId,
+      fileCount: projectData.fileCount,
       timestamp: new Date().toISOString(),
       position: [Math.random() * 10 - 5, 0, Math.random() * 10 - 5], // Random position on ocean
+      status: 'pending', // pending, analyzing, complete
     };
     setBottles([...bottles, newBottle]);
   };
@@ -48,6 +51,7 @@ function App() {
 
   return (
     <div className="app">
+
       {/* Only show view toggle for admin users */}
       {isAdmin && (
         <ViewToggle currentView={currentView} onViewChange={setView} user={user} onLogout={handleLogout} />
@@ -88,6 +92,7 @@ function App() {
       )}
 
       {currentView === 'client' ? (
+
         <ClientView onSendBottle={handleSendBottle} />
       ) : (
         <AdminView bottles={bottles} />
