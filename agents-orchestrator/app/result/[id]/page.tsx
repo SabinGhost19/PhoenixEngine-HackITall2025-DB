@@ -194,7 +194,7 @@ export default function ResultPage() {
 
                             {/* System Monitor Dashboard */}
                             <div className="box-retro p-6 bg-black/40">
-                                <SystemMonitorDashboard />
+                                <SystemMonitorDashboard initialAutoRefresh={true} />
                             </div>
                         </div>
                     )}

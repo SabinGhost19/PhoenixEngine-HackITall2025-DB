@@ -24,10 +24,14 @@ interface SystemData {
     modern: ContainerData;
 }
 
-export default function SystemMonitorDashboard() {
+interface SystemMonitorDashboardProps {
+    initialAutoRefresh?: boolean;
+}
+
+export default function SystemMonitorDashboard({ initialAutoRefresh = false }: SystemMonitorDashboardProps) {
     const [data, setData] = useState<SystemData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
     const [error, setError] = useState<string | null>(null);
     const [activeLogTab, setActiveLogTab] = useState<'gateway' | 'arbiter' | 'legacy' | 'modern'>('gateway');
     const [viewMode, setViewMode] = useState<'tabbed' | 'grid'>('grid'); // Default to Grid

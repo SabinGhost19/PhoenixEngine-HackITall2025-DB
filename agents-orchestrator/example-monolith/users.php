@@ -10,7 +10,6 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 // Database connection
 $db_url = getenv("DATABASE_URL");
 if (!$db_url) {
-    // Fallback for local testing if env var not set
     $db_url = "postgresql://phoenix:password@host.docker.internal:5432/phoenix_db";
 }
 

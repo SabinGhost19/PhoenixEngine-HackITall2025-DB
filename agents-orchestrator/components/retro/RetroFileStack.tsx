@@ -32,7 +32,7 @@ export default function RetroFileStack({ files, selectedFile, onSelect }: RetroF
 
                     return (
                         <div
-                            key={file.path}
+                            key={`${file.path}-${index}`}
                             onClick={() => onSelect(file)}
                             onMouseEnter={() => onSelect(file)}
                             className={`

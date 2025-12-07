@@ -93,6 +93,12 @@ for file in $GO_FILES; do
         sed -i '/"fmt"/d' "$file"
     fi
 
+    # Check if config is used (ignoring comments)
+    if ! grep -v "^\s*//" "$file" | grep -q "config\."; then
+        echo "🧹 Removing unused config import from $file"
+        sed -i '/"\/config"/d' "$file"
+    fi
+
     # Run goimports if installed, otherwise gofmt
     if command -v goimports &> /dev/null; then
         goimports -w "$file" 2>/dev/null || true
@@ -110,6 +116,50 @@ if [[ "$MAIN_GO" == *"/cmd/main.go" ]]; then
         
         # Ensure CMD is correct
         sed -i 's|CMD .*|CMD ["./users-service"]|g' "$MIGRATION_DIR/Dockerfile"
+    fi
+fi
+
+# Ensure LoggingMiddleware exists
+if ! grep -q "func LoggingMiddleware" "$MAIN_GO"; then
+    echo "🛡️  Injecting missing LoggingMiddleware..."
+    
+    # Add the middleware function at the end of the file
+    cat >> "$MAIN_GO" <<EOF
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		log.Printf("Started %s %s", r.Method, r.URL.Path)
+		
+		next.ServeHTTP(w, r)
+		
+		log.Printf("Completed %s %s in %v", r.Method, r.URL.Path, time.Since(start))
+	})
+}
+EOF
+
+    # Add usage to router
+    # Look for router initialization (mux.NewRouter or chi.NewRouter)
+    if grep -q "mux.NewRouter" "$MAIN_GO"; then
+        sed -i '/mux.NewRouter()/a \\	r.Use(LoggingMiddleware)' "$MAIN_GO"
+    elif grep -q "chi.NewRouter" "$MAIN_GO"; then
+        sed -i '/chi.NewRouter()/a \\	r.Use(LoggingMiddleware)' "$MAIN_GO"
+    fi
+
+    # Ensure 'time' and 'log' are imported
+    if ! grep -q "\"time\"" "$MAIN_GO"; then
+        sed -i "/^import (/,/)/{
+            /^)/{
+                i\\	\"time\"
+            }
+        }" "$MAIN_GO"
+    fi
+    if ! grep -q "\"log\"" "$MAIN_GO"; then
+        sed -i "/^import (/,/)/{
+            /^)/{
+                i\\	\"log\"
+            }
+        }" "$MAIN_GO"
     fi
 fi
 
