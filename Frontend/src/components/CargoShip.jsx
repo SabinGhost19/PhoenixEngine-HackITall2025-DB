@@ -1,6 +1,5 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import * as THREE from 'three';
-import { useTexture } from '@react-three/drei';
 import { createContainerTexture, createMetalTexture, createDeckTexture, createRustyMetalTexture } from '../utils/textures';
 import dockerLogo from '../assets/docker.png';
 import kubernetesLogo from '../assets/Kubernetes-Logo.jpg';
@@ -8,7 +7,17 @@ import kubernetesLogo from '../assets/Kubernetes-Logo.jpg';
 // Container component with detailed textures
 function Container({ position, color, label = "CARGO" }) {
   const containerTexture = useMemo(() => createContainerTexture(color), [color]);
-  const dockerTexture = useTexture(dockerLogo);
+  const [dockerTexture, setDockerTexture] = useState(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      dockerLogo,
+      (texture) => setDockerTexture(texture),
+      undefined,
+      (error) => console.warn('Failed to load docker texture:', error)
+    );
+  }, []);
   
   return (
     <group position={position}>
@@ -19,16 +28,20 @@ function Container({ position, color, label = "CARGO" }) {
       </mesh>
       
       {/* Docker logo on right side */}
-      <mesh position={[2.05, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[3, 1.5]} />
-        <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
-      </mesh>
+      {dockerTexture && (
+        <mesh position={[2.05, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[3, 1.5]} />
+          <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
+        </mesh>
+      )}
       
       {/* Docker logo on left side */}
-      <mesh position={[-2.05, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[3, 1.5]} />
-        <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
-      </mesh>
+      {dockerTexture && (
+        <mesh position={[-2.05, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          <planeGeometry args={[3, 1.5]} />
+          <meshStandardMaterial map={dockerTexture} transparent alphaTest={0.5} />
+        </mesh>
+      )}
       
       {/* Container doors detail */}
       <group position={[0, 0, 4]}>
@@ -82,7 +95,17 @@ function Container({ position, color, label = "CARGO" }) {
 
 function CargoShip({ position = [0, 0, -30] }) {
   const shipRef = useRef();
-  const k8sTexture = useTexture(kubernetesLogo);
+  const [k8sTexture, setK8sTexture] = useState(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      kubernetesLogo,
+      (texture) => setK8sTexture(texture),
+      undefined,
+      (error) => console.warn('Failed to load kubernetes texture:', error)
+    );
+  }, []);
   
   // Create textures
   const metalTexture1 = useMemo(() => createMetalTexture('#4a5260'), []);

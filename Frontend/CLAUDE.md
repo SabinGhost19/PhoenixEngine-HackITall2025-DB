@@ -26,6 +26,26 @@ npm run lint     # Run ESLint
 - **@react-three/drei 10.7** - Useful helpers for R3F
 - **@react-three/postprocessing 3.0** - Post-processing effects
 
+### Authentication System
+The application requires authentication before accessing the main 3D views. Authentication flow is managed in `App.jsx`:
+
+- **RealisticCRT** (`src/pages/RealisticCRT.jsx`) - Main authentication screen featuring:
+  - Realistic vintage CRT monitor aesthetic (Commodore 1084S style)
+  - Migration visual metaphor: legacy tech icons flow into monitor (COBOL, FORTRAN, PERL) and modern tech flows out (Docker, K8s, React)
+  - Windows XP desktop environment with floppy disk icons for LOGIN.EXE and REGISTER.EXE
+  - Terminal window with typing animations
+  - Full CRT effects: scanlines, burn-in, glass curvature, phosphor glow
+
+- **LoginPage** (`src/pages/LoginPage.jsx`) - Alternative terminal-style login interface (not currently used, but available)
+- **RegisterPage** (`src/pages/RegisterPage.jsx`) - Alternative terminal-style registration (not currently used, but available)
+
+**User State Management:**
+- `user` object stored in App state contains `{username, role, email?}`
+- `role` can be 'admin' or 'client'
+- Admin users can toggle between client and admin views
+- Regular users only see client view with logout button
+- Admin credentials (temporary): username='admin', password='admin123'
+
 ### View System
 The application has two distinct views managed by `App.jsx`:
 - **ClientView** (`src/scenes/ClientView.jsx`) - First-person perspective from a boat, allows uploading projects
@@ -34,6 +54,7 @@ The application has two distinct views managed by `App.jsx`:
 State management uses React's `useState` to track:
 - Current view (client/admin)
 - Bottles array (representing submitted projects)
+- User authentication state (user object)
 
 ### 3D Components
 
@@ -87,18 +108,25 @@ The AdminView includes an immersive control panel experience:
 ## File Organization
 ```
 src/
+├── pages/           # Authentication pages (RealisticCRT, LoginPage, RegisterPage)
 ├── scenes/          # Main view components (ClientView, AdminView)
-├── components/      # 3D objects and UI (Ocean, Boat, Bottle, etc.)
+├── components/      # 3D objects and UI (Ocean, Boat, Bottle, ViewToggle, etc.)
 ├── shaders/         # Custom GLSL shaders
 ├── utils/           # Utility functions (textures.js, teletextRenderer.js)
 └── assets/          # Images (docker.png, kubernetes.png, etc.)
 ```
 
 ## Styling Approach
-- Component-specific CSS files (e.g., `UploadUI.css`, `AdminView.css`, `TeletextPanelView.css`)
+- Component-specific CSS files (e.g., `UploadUI.css`, `AdminView.css`, `TeletextPanelView.css`, `RealisticCRT.css`, `AuthPages.css`)
 - Retro/pixelated aesthetic with monospace fonts (Courier New)
 - Overlay UI positioned absolutely over 3D canvas
 - CRT effects using CSS animations and pseudo-elements
+- Authentication pages use:
+  - Windows XP Bliss background gradient
+  - Realistic CRT monitor housing with yellowed plastic, dust, screws, ventilation grills
+  - Floppy disk icon styling for executable files
+  - DOS/terminal window aesthetics
+  - Scanlines, phosphor glow, burn-in effects for authenticity
 
 ## Key Implementation Patterns
 
@@ -115,6 +143,15 @@ Ocean shader uniforms are updated via `useFrame` to animate waves:
 - `uTime` - elapsed time for animation
 - `uWaveStrength` - wave amplitude control
 - Color uniforms for water appearance
+
+### Authentication Flow
+1. App checks if `user` state exists
+2. If no user, renders `RealisticCRT` component
+3. User clicks LOGIN.EXE or REGISTER.EXE floppy disk icons
+4. Form submission triggers `handleLogin` or `handleRegister` in RealisticCRT
+5. After simulated processing delay, callback invokes App's `handleLogin` or `handleRegister`
+6. App sets user state with `{username, role, email?}`
+7. Main application renders with appropriate view based on user role
 
 ### Project Data Flow
 1. Client uploads folder via UploadUI
