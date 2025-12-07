@@ -7,22 +7,25 @@ const MODEL = 'claude-3-5-haiku-20241022';
 
 interface TrafficGenerationInput {
     endpointAnalysis: EndpointAnalysis;
-    serviceUrl: string;
+    gatewayUrl: string;          // Gateway URL (e.g., http://localhost:8082)
+    serviceType: 'php' | 'python';  // Which service path to use
+    mode?: 'shadowing' | 'legacy' | 'modern';
 }
 
-const systemPrompt = `You are an expert QA Automation Engineer specialized in creating robust traffic generation and load testing scripts.
+const systemPrompt = `You are an expert QA Automation Engineer specialized in creating robust traffic generation scripts for API Gateway testing.
 
 Your role:
-- Analyze the provided API endpoint details.
-- Generate a Python script using the 'requests' library to generate traffic.
+- Generate a Python script using the 'requests' library to generate traffic through an API Gateway.
+- The Gateway operates in SHADOWING mode: it forwards requests to both Legacy and Modern services and compares responses.
 - The script MUST:
-    - Target the specific endpoints identified.
-    - Send EXACTLY 10 requests total for the endpoint.
-    - Use correct HTTP methods, headers, and payloads based on the analysis.
-    - Handle dynamic parameters (e.g., random IDs, valid data types) to make each request slightly different if possible.
-    - Log every request and response to STDOUT in a detailed, readable format with timestamps.
-    - Handle errors gracefully without crashing.
-    - Flush stdout after every print to ensure real-time logging (sys.stdout.reconfigure(line_buffering=True)).
+    - Send requests to the GATEWAY (not directly to microservices).
+    - Use the correct Gateway endpoint format.
+    - Include 'mode' field set to 'shadowing' in every request payload.
+    - Send exactly 20 requests to properly test the canary deployment.
+    - Vary request payloads slightly to simulate realistic traffic.
+    - Log every request and response with timestamps.
+    - Handle errors gracefully.
+    - Use line buffering for real-time logging.
 
 CRITICAL: You MUST respond with valid JSON that exactly matches the provided schema.`;
 
@@ -36,7 +39,7 @@ export class TrafficGenerationAgent {
                     model: anthropic(MODEL),
                     schema: TrafficGenerationSchema,
                     schemaName: 'TrafficGenerationResult',
-                    schemaDescription: 'A Python script for generating traffic to the specified endpoints',
+                    schemaDescription: 'A Python script for generating traffic through the Gateway',
                     system: systemPrompt,
                     prompt: userPrompt,
                     temperature: 0.2,
@@ -51,31 +54,61 @@ export class TrafficGenerationAgent {
     }
 
     private buildUserPrompt(input: TrafficGenerationInput): string {
-        const { endpointAnalysis, serviceUrl } = input;
+        const { endpointAnalysis, gatewayUrl, serviceType, mode = 'shadowing' } = input;
 
-        return `Generate a traffic generation script for the following endpoint.
+        // Construct the Gateway endpoint URL
+        const gatewayEndpoint = `${gatewayUrl}/${serviceType}/transfer`;
 
-**Target Service URL**: ${serviceUrl}
+        return `Generate a traffic generation script for the Phoenix Engine Gateway.
 
-**Endpoint Analysis**:
+**Architecture Overview**:
+The Gateway sits in front of Legacy and Modern services. When receiving requests with mode='shadowing', 
+it forwards to BOTH services and compares responses for the Arbiter to analyze.
+
+**Gateway Configuration**:
+- Gateway URL: ${gatewayUrl}
+- Service Type: ${serviceType} 
+- Full Endpoint: ${gatewayEndpoint}
+- Mode: ${mode} (include this in EVERY request payload)
+
+**Original Endpoint Analysis** (use this to understand the business logic):
 ${JSON.stringify(endpointAnalysis, null, 2)}
 
 **Requirements**:
-1. The script must be written in Python.
-2. It should use the 'requests' library.
-3. It must send EXACTLY 10 requests to the endpoint: ${endpointAnalysis.endpointPath}.
-4. It must construct valid payloads based on the 'inputParameters' in the analysis. Vary the data slightly for each request (e.g. different IDs or names).
-5. If the endpoint requires specific headers, include them.
-6. **LOGGING REQUIREMENTS**:
-   - Initialize with: \`sys.stdout.reconfigure(line_buffering=True)\`
-   - For EACH request, print a log entry in this EXACT format:
-     \`[YYYY-MM-DD HH:MM:SS] REQUEST: {method} {url} | Payload: {json_payload}\`
-     \`[YYYY-MM-DD HH:MM:SS] RESPONSE: {status_code} | Time: {latency}ms | Body: {response_snippet}\`
-   - Add a small delay (e.g., 0.5s) between requests to make the logs readable in real-time.
+1. The script MUST use Python with the 'requests' library.
+2. Target URL: \`${gatewayEndpoint}\` (POST requests only)
+3. Send EXACTLY 20 requests to generate enough samples for the Arbiter.
+4. EVERY request payload MUST include: \`"mode": "${mode}"\`
+5. Based on the endpoint analysis, construct valid payloads. For transfer-funds type endpoints, use:
+   - account_number: random valid account numbers (e.g., "ACC001" to "ACC010")
+   - amount: positive decimal values (e.g., 10.00 to 100.00)
+   - transaction_id: dynamically generate UUIDs if needed
+6. Vary the payload data for each request to simulate realistic traffic.
+7. Add "Content-Type: application/json" header.
+
+**LOGGING REQUIREMENTS** (CRITICAL for UI display):
+- Initialize with: \`sys.stdout.reconfigure(line_buffering=True)\`
+- For EACH request, print logs in this EXACT format:
+  \`[YYYY-MM-DD HH:MM:SS] 🚀 REQUEST #N: POST ${gatewayEndpoint}\`
+  \`[YYYY-MM-DD HH:MM:SS] 📤 Payload: {json_payload}\`
+  \`[YYYY-MM-DD HH:MM:SS] 📥 RESPONSE: {status_code} | Time: {latency}ms\`
+  \`[YYYY-MM-DD HH:MM:SS] 📊 Response Body: {response_snippet}\`
+- Add a 1 second delay between requests for readable real-time logs.
+- At the end, print a summary: total requests, success rate, average latency.
+
+**Example Request Payload**:
+\`\`\`json
+{
+    "mode": "shadowing",
+    "account_number": "ACC001",
+    "amount": 50.00
+}
+\`\`\`
 
 **Output**:
-Provide the complete Python code in the 'scriptContent' field.`;
+Generate the complete Python script in the 'scriptContent' field.`;
     }
 }
 
 export const trafficGenerationAgent = new TrafficGenerationAgent();
+

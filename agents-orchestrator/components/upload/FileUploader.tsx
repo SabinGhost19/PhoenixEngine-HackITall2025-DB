@@ -44,11 +44,18 @@ export default function FileUploader({ onUploadComplete }: FileUploaderProps) {
     setError(null);
 
     try {
+      // Add timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 1 min
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -58,11 +65,24 @@ export default function FileUploader({ onUploadComplete }: FileUploaderProps) {
 
       onUploadComplete(data.uploadId, files);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+
+      // Better error message for network issues
+      if (err instanceof Error && (
+        err.name === 'AbortError' ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('fetch') ||
+        errorMessage.includes('network')
+      )) {
+        setError('Network connection issue. Please check your connection and try again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setUploading(false);
     }
   };
+
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 space-y-6">

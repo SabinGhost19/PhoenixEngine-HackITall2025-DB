@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Rocket, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { EndpointAnalysis } from '../lib/schemas';
 import TrafficGenerator from './TrafficGenerator';
+import MigrationProgressPanel from './MigrationProgressPanel';
 
 interface DeploymentResult {
     success: boolean;
@@ -73,6 +74,18 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
 
                         if (statusData.status === 'success') {
                             console.log('✅ Deployment successful:', statusData);
+
+                            // Unlock traffic to allow shadowing mode
+                            try {
+                                await fetch('/api/gateway/traffic-lock', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ locked: false })
+                                });
+                                console.log('🔓 Traffic lock disabled - shadowing mode enabled');
+                            } catch (unlockError) {
+                                console.warn('Could not unlock traffic:', unlockError);
+                            }
                         } else {
                             console.error('❌ Deployment failed:', statusData);
                         }
@@ -81,6 +94,7 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
                     console.error('Polling error:', err);
                 }
             }, 2000);
+
 
         } catch (error) {
             console.error('❌ Deployment error:', error);
@@ -285,10 +299,17 @@ export default function DeploymentPanel({ migrationId, isGenerating = false, end
                         <TrafficGenerator
                             endpointAnalysis={endpointAnalysis!}
                             migrationId={migrationId!}
+                            serviceType="php"
                         />
+                    )}
+
+                    {/* Migration Progress Panel - Shows real-time migration status */}
+                    {deploymentResult?.modern.success && (
+                        <MigrationProgressPanel serviceType="php" />
                     )}
                 </div>
             )}
         </div>
     );
 }
+
